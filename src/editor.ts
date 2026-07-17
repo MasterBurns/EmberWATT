@@ -205,6 +205,13 @@ export class EmberWattCardEditor extends LitElement {
                 @input=${(ev: any) => this._updateArrayValue('battery_entities', index, 'name', ev.target.value)}
               />
             </label>
+            <label class="text-input-wrapper">
+              Gruppenname (Optional):
+              <input type="text"
+                .value=${battery.group || ''}
+                @input=${(ev: any) => this._updateArrayValue('battery_entities', index, 'group', ev.target.value)}
+              />
+            </label>
             <label class="checkbox-row" style="margin-top: 8px;">
               <input 
                 type="checkbox" 

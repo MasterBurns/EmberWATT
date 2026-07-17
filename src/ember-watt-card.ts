@@ -5,6 +5,16 @@ import { EmberWattConfig } from './types';
 import { styles } from './styles';
 import './editor';
 
+interface VirtualBattery {
+  id: string;
+  name: string;
+  group?: string;
+  power: number; // Positive = Charging, Negative = Discharging
+  soc: number;
+  count: number;
+  color?: string;
+}
+
 @customElement('ember-watt-card')
 export class EmberWattCard extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
@@ -60,7 +70,7 @@ export class EmberWattCard extends LitElement {
 
   protected updated(changedProps: PropertyValues): void {
     super.updated(changedProps);
-    if (changedProps.has('hass')) {
+    if (changedProps.has('hass') || changedProps.has('_config')) {
       this._updatePaths();
     }
   }
@@ -71,6 +81,54 @@ export class EmberWattCard extends LitElement {
       x: rect.left - containerRect.left + rect.width / 2,
       y: rect.top - containerRect.top + rect.height / 2
     };
+  }
+
+  private get _virtualBatteries(): VirtualBattery[] {
+    const virtuals: VirtualBattery[] = [];
+    if (!this._config?.battery_entities) return virtuals;
+
+    this._config.battery_entities.forEach((battery, index) => {
+      let power = this._getState(battery.entity_power);
+      if (battery.invert_power) power = -power;
+      const soc = this._getState(battery.entity_soc);
+
+      if (battery.group && battery.group.trim() !== '') {
+        const existing = virtuals.find(v => v.group === battery.group);
+        if (existing) {
+          existing.power += power;
+          existing.soc += soc; // will average later
+          existing.count += 1;
+        } else {
+          virtuals.push({
+            id: `battery-group-${battery.group.replace(/\\s+/g, '-')}`,
+            name: battery.group,
+            group: battery.group,
+            power: power,
+            soc: soc,
+            count: 1,
+            color: battery.color
+          });
+        }
+      } else {
+        virtuals.push({
+          id: `battery-${index}`,
+          name: battery.name || 'Batterie',
+          power: power,
+          soc: soc,
+          count: 1,
+          color: battery.color
+        });
+      }
+    });
+
+    // Average the SOC for grouped batteries
+    virtuals.forEach(v => {
+      if (v.count > 1) {
+        v.soc = v.soc / v.count;
+      }
+    });
+
+    return virtuals;
   }
 
   private _updatePaths() {
@@ -110,10 +168,14 @@ export class EmberWattCard extends LitElement {
 
     // --- Solar Orthogonal Bus Routing ---
     if (this._config.solar_entities && this._config.solar_entities.length > 0) {
-      const solarBusY = homeCenter.y - 90;
       const solarColor = this._config.colors?.solar || '#f1c40f';
       let anySolarActive = false;
       let totalSolarPower = 0;
+      
+      const solarNodes = Array.from(this.shadowRoot?.querySelectorAll('.node.solar') || []);
+      const solarCenters = solarNodes.map(n => this._getCenter(n as HTMLElement, containerRect));
+      const maxSolarY = solarCenters.length > 0 ? Math.max(...solarCenters.map(c => c.y)) : homeCenter.y - 120;
+      const solarBusY = Math.min(maxSolarY + 60, homeCenter.y - 60);
 
       this._config.solar_entities.forEach((solar, index) => {
         const node = this.shadowRoot?.querySelector(`#solar-${index}`) as HTMLElement;
@@ -143,27 +205,31 @@ export class EmberWattCard extends LitElement {
     }
 
     // --- Battery Orthogonal Bus Routing ---
-    if (this._config.battery_entities && this._config.battery_entities.length > 0) {
-      const batteryBusY = homeCenter.y + 90;
+    const virtualBatteries = this._virtualBatteries;
+    if (virtualBatteries.length > 0) {
       const batteryColor = this._config.colors?.battery || '#2ecc71';
       let anyBatteryActive = false;
 
-      this._config.battery_entities.forEach((battery, index) => {
-        const node = this.shadowRoot?.querySelector(`#battery-${index}`) as HTMLElement;
+      const batteryNodes = Array.from(this.shadowRoot?.querySelectorAll('.node.battery') || []);
+      const batteryCenters = batteryNodes.map(n => this._getCenter(n as HTMLElement, containerRect));
+      const minBatteryY = batteryCenters.length > 0 ? Math.min(...batteryCenters.map(c => c.y)) : homeCenter.y + 120;
+      const batteryBusY = Math.max(minBatteryY - 60, homeCenter.y + 60);
+
+      virtualBatteries.forEach((vBatt, index) => {
+        const node = this.shadowRoot?.querySelector(`#${vBatt.id}`) as HTMLElement;
         if (node) {
           const center = this._getCenter(node, containerRect);
-          let power = this._getState(battery.entity_power);
-          if (battery.invert_power) power = -power;
+          const power = vBatt.power;
           
           if (Math.abs(power) > 0 || alwaysShow) {
             anyBatteryActive = true;
-            const startY = center.y - 40; // top edge of battery bubble
+            const startY = center.y - 45; // top edge of battery bubble (approx 95/2 = 47.5, so 45 is safe)
             const endY = homeCenter.y + 50; // bottom edge of home bubble
             newPaths.push({
-              id: `battery-${index}-path`,
+              id: `${vBatt.id}-path`,
               d: `M ${center.x} ${startY} L ${center.x} ${batteryBusY} L ${homeCenter.x} ${batteryBusY} L ${homeCenter.x} ${endY}`,
               power: Math.abs(power),
-              color: battery.color || batteryColor,
+              color: vBatt.color || batteryColor,
               reverse: false
             });
             newPaths[newPaths.length - 1].reverse = power > 0;
@@ -239,10 +305,9 @@ export class EmberWattCard extends LitElement {
     });
 
     let totalBatteryPower = 0;
-    this._config.battery_entities?.forEach(battery => {
-      let power = this._getState(battery.entity_power);
-      if (battery.invert_power) power = -power;
-      totalBatteryPower += power; // Positive is charging, Negative is discharging
+    const virtualBatteries = this._virtualBatteries;
+    virtualBatteries.forEach(vBatt => {
+      totalBatteryPower += vBatt.power;
     });
 
     // Auto calculate home power if entity is not provided
@@ -250,7 +315,6 @@ export class EmberWattCard extends LitElement {
     if (this._config.home_consumption_entity) {
       homePower = this._getState(this._config.home_consumption_entity);
     } else {
-      // Home = Solar + GridImport - GridExport - BatteryCharging + BatteryDischarging
       homePower = totalSolarPower + gridPower - totalBatteryPower;
       if (homePower < 0) homePower = 0; // Precaution
     }
@@ -300,29 +364,23 @@ export class EmberWattCard extends LitElement {
 
             <!-- Battery (Bottom) -->
             <div class="node-section battery-section">
-              ${this._config.battery_entities?.map((battery, index) => {
-                let power = this._getState(battery.entity_power);
-                if (battery.invert_power) power = -power;
-                
-                const isCharging = power > 0;
-                const isDischarging = power < 0;
+              ${virtualBatteries.map((vBatt) => {
+                const isCharging = vBatt.power > 0;
+                const isDischarging = vBatt.power < 0;
                 let icon = 'mdi:battery';
                 if (isCharging) icon = 'mdi:battery-charging';
                 if (isDischarging) icon = 'mdi:battery-minus';
 
-                // Ensure value is always positive in UI
-                const displayPower = Math.abs(power);
-
                 return html`
-                <div id="battery-${index}" class="node battery" style="--color-battery: ${battery.color || this._config.colors?.battery || '#2ecc71'}">
+                <div id="${vBatt.id}" class="node battery" style="--color-battery: ${vBatt.color || this._config.colors?.battery || '#2ecc71'}">
                   <ha-icon class="icon" icon="${icon}"></ha-icon>
                   <div class="value">
                     ${isCharging ? html`<ha-icon icon="mdi:arrow-down" style="width: 14px; height: 14px; margin-right: 2px; color: var(--color-battery)"></ha-icon>` : ''}
                     ${isDischarging ? html`<ha-icon icon="mdi:arrow-up" style="width: 14px; height: 14px; margin-right: 2px; color: var(--color-solar)"></ha-icon>` : ''}
-                    ${this._formatPower(displayPower)} W
+                    ${this._formatPower(Math.abs(vBatt.power))} W
                   </div>
-                  <div class="soc">${Math.round(this._getState(battery.entity_soc))}%</div>
-                  <div class="name">${battery.name || 'Batterie'}</div>
+                  <div class="soc">${Math.round(vBatt.soc)}%</div>
+                  <div class="name" title="${vBatt.name}">${vBatt.name}</div>
                 </div>
               `})}
             </div>

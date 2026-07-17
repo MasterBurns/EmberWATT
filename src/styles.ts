@@ -90,18 +90,17 @@ export const styles = css`
 
   /* Individual Node */
   .node {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 50%;
-    width: 80px;
-    height: 80px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    position: relative;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    width: 84px;
+    height: 84px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid transparent;
     z-index: 10;
+    position: relative;
   }
 
   .node.home {
@@ -117,6 +116,8 @@ export const styles = css`
   }
 
   .node.battery {
+    width: 95px;
+    height: 95px;
     border-color: var(--color-battery);
     box-shadow: 0 0 15px rgba(46, 204, 113, 0.2);
   }
@@ -138,13 +139,14 @@ export const styles = css`
   }
   
   .name {
-    font-size: 10px;
+    font-size: 11px;
     opacity: 0.7;
     text-align: center;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 70px;
+    max-width: 85px;
+    margin-top: 2px;
   }
 
   .soc {
