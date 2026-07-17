@@ -6,7 +6,7 @@ import { styles } from './styles';
 import './editor';
 
 console.info(
-  `%c EMBER-WATT-CARD %c v1.2.0 `,
+  `%c EMBER-WATT-CARD %c v1.3.0 `,
   'color: orange; font-weight: bold; background: black',
   'color: white; font-weight: bold; background: dimgray'
 );
@@ -188,6 +188,8 @@ export class EmberWattCard extends LitElement {
         const groupCenter = this._getCenter(groupEl, containerRect);
         
         const groupTopBusY = groupRect.top + 28;
+        const isGroupLeft = groupCenter.x < homeCenter.x;
+        const groupBusX = isGroupLeft ? groupRect.right - 16 : groupRect.left + 16;
         let groupActive = false;
 
         groupedEntities[groupName].forEach((index) => {
@@ -202,8 +204,10 @@ export class EmberWattCard extends LitElement {
             if (Math.abs(power) > 0 || alwaysShow) {
               groupActive = true;
               
-              // Internal vertical spine to groupTopBusY, then horizontal to main spine, then UP to home
-              const d = `M ${center.x} ${edges.top} L ${center.x} ${groupTopBusY} L ${homeCenter.x} ${groupTopBusY} L ${homeCenter.x} ${homeEdges.bottom}`;
+              const startX = isGroupLeft ? edges.right : edges.left;
+              const startY = center.y;
+              
+              const d = `M ${startX} ${startY} L ${groupBusX} ${startY} L ${groupBusX} ${groupTopBusY} L ${homeCenter.x} ${groupTopBusY} L ${homeCenter.x} ${homeEdges.bottom}`;
               
               newPaths.push({
                 id: `battery-${index}-path`,
@@ -212,13 +216,15 @@ export class EmberWattCard extends LitElement {
                 color: battery.color || batteryColor,
                 reverse: power > 0
               });
+
+              newJunctions.push({ id: `battery-group-internal-${index}`, x: groupBusX, y: startY, color: batteryColor });
             }
           }
         });
 
         if (groupActive || alwaysShow) {
-          newJunctions.push({ id: `battery-group-junc-${gIdx}`, x: homeCenter.x, y: groupTopBusY, color: batteryColor });
-          newJunctions.push({ id: `battery-group-internal-junc-${gIdx}`, x: groupCenter.x, y: groupTopBusY, color: batteryColor });
+          newJunctions.push({ id: `battery-group-junc-turn-${gIdx}`, x: groupBusX, y: groupTopBusY, color: batteryColor });
+          newJunctions.push({ id: `battery-group-junc-spine-${gIdx}`, x: homeCenter.x, y: groupTopBusY, color: batteryColor });
         }
       });
 

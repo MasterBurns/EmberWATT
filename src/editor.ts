@@ -229,7 +229,7 @@ export class EmberWattCardEditor extends LitElement {
       </div>
       
       <div style="margin-top: 24px; font-size: 12px; color: var(--secondary-text-color); text-align: center;">
-        EmberWATT Card - v1.2.0
+        EmberWATT Card - v1.3.0
       </div>
     `;
   }

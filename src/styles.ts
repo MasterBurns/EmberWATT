@@ -95,7 +95,7 @@ export const styles = css`
     align-items: center;
     border: 1px solid var(--color-battery);
     border-radius: 20px;
-    padding: 24px 32px 16px 16px;
+    padding: 24px 32px 16px 32px;
     position: relative;
     background: rgba(255, 255, 255, 0.02);
     box-shadow: inset 0 0 15px rgba(46, 204, 113, 0.05);
