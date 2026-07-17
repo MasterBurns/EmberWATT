@@ -768,20 +768,22 @@ var Q = class extends q {
 	_valueChanged(e) {
 		if (!this._config || !this.hass) return;
 		let t = e.target;
-		if (this[`_${t.configValue}`] === t.value) return;
-		if (t.configValue) if (t.value === "") {
+		if (!t.configValue) return;
+		let n = t.value;
+		if (t.type === "checkbox" && (n = t.checked), this._config[t.configValue] === n) return;
+		if (n === "") {
 			let e = { ...this._config };
 			delete e[t.configValue], this._config = e;
 		} else this._config = {
 			...this._config,
-			[t.configValue]: t.checked === void 0 ? t.value : t.checked
+			[t.configValue]: n
 		};
-		let n = new CustomEvent("config-changed", {
+		let r = new CustomEvent("config-changed", {
 			detail: { config: this._config },
 			bubbles: !0,
 			composed: !0
 		});
-		this.dispatchEvent(n);
+		this.dispatchEvent(r);
 	}
 	_updateArrayValue(e, t, n, r) {
 		let i = [...this._config[e] || []];
@@ -807,7 +809,8 @@ var Q = class extends q {
 		}) : t.push({
 			entity_power: "",
 			entity_soc: "",
-			name: "Neue Batterie"
+			name: "Neue Batterie",
+			invert_power: !1
 		}), this._config = {
 			...this._config,
 			[e]: t
@@ -850,20 +853,23 @@ var Q = class extends q {
             @input=${this._valueChanged}
           ></ha-textfield>
         </div>
-        <div class="row" style="align-items: center; margin-top: 8px;">
-          <ha-switch
-            .checked=${this._config.always_show_paths !== !1}
-            .configValue=${"always_show_paths"}
-            @change=${this._valueChanged}
-          ></ha-switch>
-          <span style="margin-left: 8px;">Pfade immer sichtbar (animieren nur bei Leistungsfluss)</span>
+        <div class="row checkbox-row">
+          <label>
+            <input 
+              type="checkbox" 
+              .checked=${this._config.always_show_paths !== !1}
+              .configValue=${"always_show_paths"}
+              @change=${this._valueChanged}
+            />
+            Pfade immer sichtbar (animieren nur bei Leistungsfluss)
+          </label>
         </div>
 
         <h3>Basis Entitäten</h3>
         <p class="description">Hinweis: Wenn "Hausverbrauch" leer bleibt, wird er automatisch berechnet.</p>
         <ha-entity-picker
           .hass=${this.hass}
-          .value=${this._config.home_consumption_entity}
+          .value=${this._config.home_consumption_entity || ""}
           .configValue=${"home_consumption_entity"}
           @value-changed=${this._valueChanged}
           allow-custom-entity
@@ -872,7 +878,7 @@ var Q = class extends q {
 
         <ha-entity-picker
           .hass=${this.hass}
-          .value=${this._config.grid_import_entity}
+          .value=${this._config.grid_import_entity || ""}
           .configValue=${"grid_import_entity"}
           @value-changed=${this._valueChanged}
           allow-custom-entity
@@ -881,7 +887,7 @@ var Q = class extends q {
 
         <ha-entity-picker
           .hass=${this.hass}
-          .value=${this._config.grid_export_entity}
+          .value=${this._config.grid_export_entity || ""}
           .configValue=${"grid_export_entity"}
           @value-changed=${this._valueChanged}
           allow-custom-entity
@@ -903,12 +909,12 @@ var Q = class extends q {
               .value=${e.name || ""}
               @input=${(e) => this._updateArrayValue("solar_entities", t, "name", e.target.value)}
             ></ha-textfield>
-            <mwc-icon-button @click=${() => this._removeArrayItem("solar_entities", t)}>
-              <ha-icon icon="mdi:delete"></ha-icon>
-            </mwc-icon-button>
+            <button class="icon-button" @click=${() => this._removeArrayItem("solar_entities", t)}>
+              Löschen
+            </button>
           </div>
         `)}
-        <mwc-button @click=${() => this._addArrayItem("solar_entities")}>Solarquelle hinzufügen</mwc-button>
+        <button class="primary-button" @click=${() => this._addArrayItem("solar_entities")}>+ Solarquelle hinzufügen</button>
 
         <h3>Batterien</h3>
         ${(this._config.battery_entities || []).map((e, t) => F`
@@ -932,12 +938,20 @@ var Q = class extends q {
               .value=${e.name || ""}
               @input=${(e) => this._updateArrayValue("battery_entities", t, "name", e.target.value)}
             ></ha-textfield>
-            <mwc-icon-button @click=${() => this._removeArrayItem("battery_entities", t)}>
-              <ha-icon icon="mdi:delete"></ha-icon>
-            </mwc-icon-button>
+            <label class="checkbox-row" style="margin-top: 8px;">
+              <input 
+                type="checkbox" 
+                .checked=${e.invert_power || !1}
+                @change=${(e) => this._updateArrayValue("battery_entities", t, "invert_power", e.target.checked)}
+              />
+              Logik umkehren (Positiver Wert = Laden)
+            </label>
+            <button class="icon-button" @click=${() => this._removeArrayItem("battery_entities", t)}>
+              Löschen
+            </button>
           </div>
         `)}
-        <mwc-button @click=${() => this._addArrayItem("battery_entities")}>Batterie hinzufügen</mwc-button>
+        <button class="primary-button" @click=${() => this._addArrayItem("battery_entities")}>+ Batterie hinzufügen</button>
       </div>
     `;
 	}
@@ -947,6 +961,7 @@ var Q = class extends q {
         display: flex;
         flex-direction: column;
         gap: 12px;
+        padding-bottom: 24px;
       }
       h3 {
         margin: 16px 0 8px 0;
@@ -966,6 +981,14 @@ var Q = class extends q {
       .row > * {
         flex: 1;
       }
+      .checkbox-row {
+        display: flex;
+        align-items: center;
+        font-size: 0.9em;
+      }
+      .checkbox-row input {
+        margin-right: 8px;
+      }
       .array-item {
         display: flex;
         flex-direction: column;
@@ -975,11 +998,26 @@ var Q = class extends q {
         border-radius: 8px;
         margin-bottom: 8px;
       }
-      mwc-button {
+      .primary-button {
         align-self: flex-start;
+        background: var(--primary-color);
+        color: var(--text-primary-color, white);
+        border: none;
+        border-radius: 4px;
+        padding: 8px 16px;
+        cursor: pointer;
+        font-weight: 500;
       }
-      mwc-icon-button {
+      .icon-button {
         align-self: flex-end;
+        background: transparent;
+        color: var(--error-color, red);
+        border: 1px solid var(--error-color, red);
+        border-radius: 4px;
+        padding: 4px 8px;
+        cursor: pointer;
+        font-size: 0.85em;
+        margin-top: 8px;
       }
     `;
 	}
@@ -1000,11 +1038,6 @@ var $ = class extends q {
 	static getStubConfig() {
 		return {
 			type: "custom:ember-watt-card",
-			home_consumption_entity: "",
-			grid_import_entity: "",
-			grid_export_entity: "",
-			solar_entities: [],
-			battery_entities: [],
 			always_show_paths: !0
 		};
 	}
@@ -1039,74 +1072,53 @@ var $ = class extends q {
 		let t = e.getBoundingClientRect(), n = this.shadowRoot?.querySelector(".node.home"), r = this.shadowRoot?.querySelector(".node.grid");
 		if (!n || !r) return;
 		let i = this._getCenter(n, t), a = this._getCenter(r, t), o = [], s = [], c = this._config.always_show_paths !== !1, l = this._getState(this._config.grid_import_entity) - this._getState(this._config.grid_export_entity), u = this._config.colors?.grid || "#3498db";
-		(Math.abs(l) > 0 || c) && o.push({
+		if ((Math.abs(l) > 0 || c) && o.push({
 			id: "grid-home",
 			d: `M ${a.x} ${a.y} L ${i.x} ${i.y}`,
 			power: Math.abs(l),
 			color: u,
 			reverse: l < 0
-		});
-		let d = 0;
-		if (this._config.solar_entities && this._config.solar_entities.length > 0) {
-			let e = {
-				x: i.x,
-				y: i.y - 70
-			}, n = !1, r = this._config.colors?.solar || "#f1c40f";
-			this._config.solar_entities.forEach((i, a) => {
-				let s = this.shadowRoot?.querySelector(`#solar-${a}`);
-				if (s) {
-					let l = this._getCenter(s, t), u = this._getState(i.entity);
-					d += u, (u > 0 || c) && (n = !0, o.push({
-						id: `solar-${a}-junction`,
-						d: `M ${l.x} ${l.y} L ${e.x} ${e.y}`,
-						power: u,
-						color: i.color || r,
+		}), this._config.solar_entities && this._config.solar_entities.length > 0) {
+			let e = i.y - 70, n = this._config.colors?.solar || "#f1c40f", r = !1, a = 0;
+			this._config.solar_entities.forEach((s, l) => {
+				let u = this.shadowRoot?.querySelector(`#solar-${l}`);
+				if (u) {
+					let d = this._getCenter(u, t), f = this._getState(s.entity);
+					a += f, (f > 0 || c) && (r = !0, o.push({
+						id: `solar-${l}-path`,
+						d: `M ${d.x} ${d.y} L ${d.x} ${e} L ${i.x} ${e} L ${i.x} ${i.y}`,
+						power: f,
+						color: s.color || n,
 						reverse: !1
 					}));
 				}
-			}), (n || c) && (s.push({
+			}), (r || c) && s.push({
 				id: "solar-junc",
-				x: e.x,
-				y: e.y,
-				color: r
-			}), o.push({
-				id: "solar-junction-home",
-				d: `M ${e.x} ${e.y} L ${i.x} ${i.y}`,
-				power: d,
-				color: r,
-				reverse: !1
-			}));
-		}
-		let f = 0;
-		if (this._config.battery_entities && this._config.battery_entities.length > 0) {
-			let e = {
 				x: i.x,
-				y: i.y + 70
-			}, n = !1, r = this._config.colors?.battery || "#2ecc71";
-			this._config.battery_entities.forEach((i, a) => {
-				let s = this.shadowRoot?.querySelector(`#battery-${a}`);
-				if (s) {
-					let l = this._getCenter(s, t), u = this._getState(i.entity_power);
-					i.invert_power && (u = -u), f += u, (Math.abs(u) > 0 || c) && (n = !0, o.push({
-						id: `battery-${a}-junction`,
-						d: `M ${l.x} ${l.y} L ${e.x} ${e.y}`,
-						power: Math.abs(u),
-						color: i.color || r,
-						reverse: u < 0
-					}));
+				y: e,
+				color: n
+			});
+		}
+		if (this._config.battery_entities && this._config.battery_entities.length > 0) {
+			let e = i.y + 70, n = this._config.colors?.battery || "#2ecc71", r = !1;
+			this._config.battery_entities.forEach((a, s) => {
+				let l = this.shadowRoot?.querySelector(`#battery-${s}`);
+				if (l) {
+					let u = this._getCenter(l, t), d = this._getState(a.entity_power);
+					a.invert_power && (d = -d), (Math.abs(d) > 0 || c) && (r = !0, o.push({
+						id: `battery-${s}-path`,
+						d: `M ${u.x} ${u.y} L ${u.x} ${e} L ${i.x} ${e} L ${i.x} ${i.y}`,
+						power: Math.abs(d),
+						color: a.color || n,
+						reverse: d < 0
+					}), o[o.length - 1].reverse = d > 0);
 				}
-			}), (n || c) && (s.push({
+			}), (r || c) && s.push({
 				id: "battery-junc",
-				x: e.x,
-				y: e.y,
-				color: r
-			}), o.push({
-				id: "battery-junction-home",
-				d: `M ${e.x} ${e.y} L ${i.x} ${i.y}`,
-				power: Math.abs(f),
-				color: r,
-				reverse: f < 0
-			}));
+				x: i.x,
+				y: e,
+				color: n
+			});
 		}
 		this._paths = o, this._junctions = s;
 	}
@@ -1123,7 +1135,7 @@ var $ = class extends q {
 		return I`
       <svg class="flow-container">
         ${this._paths.map((t) => {
-			let n = t.power > 0, r = n ? Math.max(.2, Math.min(3, 2e3 / Math.max(1, t.power))) : 0, i = n ? 1 : e ? .3 : 0;
+			let n = t.power > 0, r = n ? Math.max(.4, Math.min(4, 3e3 / Math.max(1, t.power))) : 0, i = n ? 1 : e ? .3 : 0;
 			return I`
             <path id="${t.id}" class="flow-path" d="${t.d}" style="opacity: ${i};" />
             ${n ? I`
@@ -1192,7 +1204,7 @@ var $ = class extends q {
             <div class="node-section home-section">
               <div class="node home" style="--color-home: ${this._config.colors?.home || "#9b59b6"}">
                 <ha-icon class="icon" icon="mdi:home"></ha-icon>
-                <div class="value">${this._formatPower(i)} W</div>
+                <div class="value">${this._formatPower(Math.abs(i))} W</div>
                 <div class="name">${this._config.name_home || "Verbrauch"}</div>
               </div>
             </div>
@@ -1201,10 +1213,18 @@ var $ = class extends q {
             <div class="node-section battery-section">
               ${this._config.battery_entities?.map((e, t) => {
 			let n = this._getState(e.entity_power);
-			return e.invert_power && (n = -n), F`
+			e.invert_power && (n = -n);
+			let r = n > 0, i = n < 0, a = "mdi:battery";
+			r && (a = "mdi:battery-charging"), i && (a = "mdi:battery-minus");
+			let o = Math.abs(n);
+			return F`
                 <div id="battery-${t}" class="node battery" style="--color-battery: ${e.color || this._config.colors?.battery || "#2ecc71"}">
-                  <ha-icon class="icon" icon="mdi:battery"></ha-icon>
-                  <div class="value">${this._formatPower(Math.abs(n))} W</div>
+                  <ha-icon class="icon" icon="${a}"></ha-icon>
+                  <div class="value">
+                    ${r ? F`<ha-icon icon="mdi:arrow-down" style="width: 14px; height: 14px; margin-right: 2px; color: var(--color-battery)"></ha-icon>` : ""}
+                    ${i ? F`<ha-icon icon="mdi:arrow-up" style="width: 14px; height: 14px; margin-right: 2px; color: var(--color-solar)"></ha-icon>` : ""}
+                    ${this._formatPower(o)} W
+                  </div>
                   <div class="soc">${Math.round(this._getState(e.entity_soc))}%</div>
                   <div class="name">${e.name || "Batterie"}</div>
                 </div>

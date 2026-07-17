@@ -17,20 +17,26 @@ export class EmberWattCardEditor extends LitElement {
       return;
     }
     const target = ev.target;
-    if (this[`_${target.configValue}`] === target.value) {
+    if (!target.configValue) return;
+
+    let newValue = target.value;
+    if (target.type === 'checkbox') {
+      newValue = target.checked;
+    }
+
+    if (this._config[target.configValue as keyof EmberWattConfig] === newValue) {
       return;
     }
-    if (target.configValue) {
-      if (target.value === '') {
-        const tmpConfig = { ...this._config };
-        delete tmpConfig[target.configValue as keyof EmberWattConfig];
-        this._config = tmpConfig;
-      } else {
-        this._config = {
-          ...this._config,
-          [target.configValue]: target.checked !== undefined ? target.checked : target.value,
-        };
-      }
+
+    if (newValue === '') {
+      const tmpConfig = { ...this._config };
+      delete tmpConfig[target.configValue as keyof EmberWattConfig];
+      this._config = tmpConfig;
+    } else {
+      this._config = {
+        ...this._config,
+        [target.configValue]: newValue,
+      };
     }
     
     const event = new CustomEvent('config-changed', {
@@ -41,7 +47,7 @@ export class EmberWattCardEditor extends LitElement {
     this.dispatchEvent(event);
   }
 
-  private _updateArrayValue(arrayName: 'solar_entities' | 'battery_entities', index: number, field: string, value: string | boolean) {
+  private _updateArrayValue(arrayName: 'solar_entities' | 'battery_entities', index: number, field: string, value: any) {
     const newArray = [...(this._config[arrayName] || [])];
     newArray[index] = { ...newArray[index], [field]: value };
     this._config = { ...this._config, [arrayName]: newArray };
@@ -59,7 +65,7 @@ export class EmberWattCardEditor extends LitElement {
     if (arrayName === 'solar_entities') {
       newArray.push({ entity: '', name: 'Neue Solarquelle' });
     } else {
-      newArray.push({ entity_power: '', entity_soc: '', name: 'Neue Batterie' });
+      newArray.push({ entity_power: '', entity_soc: '', name: 'Neue Batterie', invert_power: false });
     }
     this._config = { ...this._config, [arrayName]: newArray };
     
@@ -106,20 +112,23 @@ export class EmberWattCardEditor extends LitElement {
             @input=${this._valueChanged}
           ></ha-textfield>
         </div>
-        <div class="row" style="align-items: center; margin-top: 8px;">
-          <ha-switch
-            .checked=${this._config.always_show_paths !== false}
-            .configValue=${'always_show_paths'}
-            @change=${this._valueChanged}
-          ></ha-switch>
-          <span style="margin-left: 8px;">Pfade immer sichtbar (animieren nur bei Leistungsfluss)</span>
+        <div class="row checkbox-row">
+          <label>
+            <input 
+              type="checkbox" 
+              .checked=${this._config.always_show_paths !== false}
+              .configValue=${'always_show_paths'}
+              @change=${this._valueChanged}
+            />
+            Pfade immer sichtbar (animieren nur bei Leistungsfluss)
+          </label>
         </div>
 
         <h3>Basis Entitäten</h3>
         <p class="description">Hinweis: Wenn "Hausverbrauch" leer bleibt, wird er automatisch berechnet.</p>
         <ha-entity-picker
           .hass=${this.hass}
-          .value=${this._config.home_consumption_entity}
+          .value=${this._config.home_consumption_entity || ''}
           .configValue=${'home_consumption_entity'}
           @value-changed=${this._valueChanged}
           allow-custom-entity
@@ -128,7 +137,7 @@ export class EmberWattCardEditor extends LitElement {
 
         <ha-entity-picker
           .hass=${this.hass}
-          .value=${this._config.grid_import_entity}
+          .value=${this._config.grid_import_entity || ''}
           .configValue=${'grid_import_entity'}
           @value-changed=${this._valueChanged}
           allow-custom-entity
@@ -137,7 +146,7 @@ export class EmberWattCardEditor extends LitElement {
 
         <ha-entity-picker
           .hass=${this.hass}
-          .value=${this._config.grid_export_entity}
+          .value=${this._config.grid_export_entity || ''}
           .configValue=${'grid_export_entity'}
           @value-changed=${this._valueChanged}
           allow-custom-entity
@@ -159,12 +168,12 @@ export class EmberWattCardEditor extends LitElement {
               .value=${solar.name || ''}
               @input=${(ev: any) => this._updateArrayValue('solar_entities', index, 'name', ev.target.value)}
             ></ha-textfield>
-            <mwc-icon-button @click=${() => this._removeArrayItem('solar_entities', index)}>
-              <ha-icon icon="mdi:delete"></ha-icon>
-            </mwc-icon-button>
+            <button class="icon-button" @click=${() => this._removeArrayItem('solar_entities', index)}>
+              Löschen
+            </button>
           </div>
         `)}
-        <mwc-button @click=${() => this._addArrayItem('solar_entities')}>Solarquelle hinzufügen</mwc-button>
+        <button class="primary-button" @click=${() => this._addArrayItem('solar_entities')}>+ Solarquelle hinzufügen</button>
 
         <h3>Batterien</h3>
         ${(this._config.battery_entities || []).map((battery, index) => html`
@@ -188,12 +197,20 @@ export class EmberWattCardEditor extends LitElement {
               .value=${battery.name || ''}
               @input=${(ev: any) => this._updateArrayValue('battery_entities', index, 'name', ev.target.value)}
             ></ha-textfield>
-            <mwc-icon-button @click=${() => this._removeArrayItem('battery_entities', index)}>
-              <ha-icon icon="mdi:delete"></ha-icon>
-            </mwc-icon-button>
+            <label class="checkbox-row" style="margin-top: 8px;">
+              <input 
+                type="checkbox" 
+                .checked=${battery.invert_power || false}
+                @change=${(ev: any) => this._updateArrayValue('battery_entities', index, 'invert_power', ev.target.checked)}
+              />
+              Logik umkehren (Positiver Wert = Laden)
+            </label>
+            <button class="icon-button" @click=${() => this._removeArrayItem('battery_entities', index)}>
+              Löschen
+            </button>
           </div>
         `)}
-        <mwc-button @click=${() => this._addArrayItem('battery_entities')}>Batterie hinzufügen</mwc-button>
+        <button class="primary-button" @click=${() => this._addArrayItem('battery_entities')}>+ Batterie hinzufügen</button>
       </div>
     `;
   }
@@ -204,6 +221,7 @@ export class EmberWattCardEditor extends LitElement {
         display: flex;
         flex-direction: column;
         gap: 12px;
+        padding-bottom: 24px;
       }
       h3 {
         margin: 16px 0 8px 0;
@@ -223,6 +241,14 @@ export class EmberWattCardEditor extends LitElement {
       .row > * {
         flex: 1;
       }
+      .checkbox-row {
+        display: flex;
+        align-items: center;
+        font-size: 0.9em;
+      }
+      .checkbox-row input {
+        margin-right: 8px;
+      }
       .array-item {
         display: flex;
         flex-direction: column;
@@ -232,11 +258,26 @@ export class EmberWattCardEditor extends LitElement {
         border-radius: 8px;
         margin-bottom: 8px;
       }
-      mwc-button {
+      .primary-button {
         align-self: flex-start;
+        background: var(--primary-color);
+        color: var(--text-primary-color, white);
+        border: none;
+        border-radius: 4px;
+        padding: 8px 16px;
+        cursor: pointer;
+        font-weight: 500;
       }
-      mwc-icon-button {
+      .icon-button {
         align-self: flex-end;
+        background: transparent;
+        color: var(--error-color, red);
+        border: 1px solid var(--error-color, red);
+        border-radius: 4px;
+        padding: 4px 8px;
+        cursor: pointer;
+        font-size: 0.85em;
+        margin-top: 8px;
       }
     `;
   }

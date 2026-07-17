@@ -26,11 +26,6 @@ export class EmberWattCard extends LitElement {
   public static getStubConfig() {
     return {
       type: 'custom:ember-watt-card',
-      home_consumption_entity: '',
-      grid_import_entity: '',
-      grid_export_entity: '',
-      solar_entities: [],
-      battery_entities: [],
       always_show_paths: true
     };
   }
@@ -111,12 +106,12 @@ export class EmberWattCard extends LitElement {
       });
     }
 
-    // --- Solar Bus Topology ---
-    let totalSolarPower = 0;
+    // --- Solar Orthogonal Bus Routing ---
     if (this._config.solar_entities && this._config.solar_entities.length > 0) {
-      const solarJunction = { x: homeCenter.x, y: homeCenter.y - 70 };
-      let anySolarActive = false;
+      const solarBusY = homeCenter.y - 70;
       const solarColor = this._config.colors?.solar || '#f1c40f';
+      let anySolarActive = false;
+      let totalSolarPower = 0;
 
       this._config.solar_entities.forEach((solar, index) => {
         const node = this.shadowRoot?.querySelector(`#solar-${index}`) as HTMLElement;
@@ -124,11 +119,13 @@ export class EmberWattCard extends LitElement {
           const center = this._getCenter(node, containerRect);
           const power = this._getState(solar.entity);
           totalSolarPower += power;
+          
           if (power > 0 || alwaysShow) {
             anySolarActive = true;
+            // Orthogonal path: Node -> down to Bus -> across to Center -> down to Home
             newPaths.push({
-              id: `solar-${index}-junction`,
-              d: `M ${center.x} ${center.y} L ${solarJunction.x} ${solarJunction.y}`,
+              id: `solar-${index}-path`,
+              d: `M ${center.x} ${center.y} L ${center.x} ${solarBusY} L ${homeCenter.x} ${solarBusY} L ${homeCenter.x} ${homeCenter.y}`,
               power: power,
               color: solar.color || solarColor,
               reverse: false
@@ -136,59 +133,54 @@ export class EmberWattCard extends LitElement {
           }
         }
       });
-
+      
       if (anySolarActive || alwaysShow) {
-        newJunctions.push({ id: 'solar-junc', x: solarJunction.x, y: solarJunction.y, color: solarColor });
-        newPaths.push({
-          id: `solar-junction-home`,
-          d: `M ${solarJunction.x} ${solarJunction.y} L ${homeCenter.x} ${homeCenter.y}`,
-          power: totalSolarPower,
-          color: solarColor,
-          reverse: false
-        });
+        newJunctions.push({ id: 'solar-junc', x: homeCenter.x, y: solarBusY, color: solarColor });
       }
     }
 
-    // --- Battery Bus Topology ---
-    let totalBatteryPower = 0;
+    // --- Battery Orthogonal Bus Routing ---
     if (this._config.battery_entities && this._config.battery_entities.length > 0) {
-      const batteryJunction = { x: homeCenter.x, y: homeCenter.y + 70 };
-      let anyBatteryActive = false;
+      const batteryBusY = homeCenter.y + 70;
       const batteryColor = this._config.colors?.battery || '#2ecc71';
-      let isDischargingToHome = false;
+      let anyBatteryActive = false;
 
       this._config.battery_entities.forEach((battery, index) => {
         const node = this.shadowRoot?.querySelector(`#battery-${index}`) as HTMLElement;
         if (node) {
           const center = this._getCenter(node, containerRect);
           let power = this._getState(battery.entity_power);
-          if (battery.invert_power) power = -power;
+          if (battery.invert_power) power = -power; // Invert logic configured by user
           
-          totalBatteryPower += power;
-
           if (Math.abs(power) > 0 || alwaysShow) {
             anyBatteryActive = true;
-            if (power < 0) isDischargingToHome = true;
+            // Orthogonal path: Battery -> up to Bus -> across to Center -> up to Home
+            // Note: because the dot flows from battery to home on discharge,
+            // the drawn path starts at battery. 
+            // If charging (Home to Battery), reverse is true, and dot travels backwards.
             newPaths.push({
-              id: `battery-${index}-junction`,
-              d: `M ${center.x} ${center.y} L ${batteryJunction.x} ${batteryJunction.y}`,
+              id: `battery-${index}-path`,
+              d: `M ${center.x} ${center.y} L ${center.x} ${batteryBusY} L ${homeCenter.x} ${batteryBusY} L ${homeCenter.x} ${homeCenter.y}`,
               power: Math.abs(power),
               color: battery.color || batteryColor,
-              reverse: power < 0 // discharging flows to junction
+              reverse: power < 0 // power < 0 means discharging (Battery -> Home). Oh wait.
+              // If power < 0 (discharging), dot should flow FROM battery TO home.
+              // The path starts at battery (M center.x center.y) and ends at home.
+              // So if discharging, reverse should be FALSE!
+              // If power > 0 (charging), dot should flow FROM home TO battery.
+              // So if charging, reverse should be TRUE!
+              // Let's fix that logic:
+              // power > 0 (Charging): dot travels 1 -> 0 (Home to Battery). So reverse = true.
+              // power < 0 (Discharging): dot travels 0 -> 1 (Battery to Home). So reverse = false.
             });
+            // Re-apply the fixed logic:
+            newPaths[newPaths.length - 1].reverse = power > 0;
           }
         }
       });
 
       if (anyBatteryActive || alwaysShow) {
-        newJunctions.push({ id: 'battery-junc', x: batteryJunction.x, y: batteryJunction.y, color: batteryColor });
-        newPaths.push({
-          id: `battery-junction-home`,
-          d: `M ${batteryJunction.x} ${batteryJunction.y} L ${homeCenter.x} ${homeCenter.y}`,
-          power: Math.abs(totalBatteryPower),
-          color: batteryColor,
-          reverse: totalBatteryPower < 0 // if total is discharging, flow from junction to home
-        });
+        newJunctions.push({ id: 'battery-junc', x: homeCenter.x, y: batteryBusY, color: batteryColor });
       }
     }
 
@@ -213,7 +205,7 @@ export class EmberWattCard extends LitElement {
       <svg class="flow-container">
         ${this._paths.map(path => {
           const isFlowing = path.power > 0;
-          const duration = isFlowing ? Math.max(0.2, Math.min(3, 2000 / Math.max(1, path.power))) : 0;
+          const duration = isFlowing ? Math.max(0.4, Math.min(4, 3000 / Math.max(1, path.power))) : 0;
           const opacity = isFlowing ? 1 : (alwaysShow ? 0.3 : 0);
           
           return svg`
@@ -258,7 +250,7 @@ export class EmberWattCard extends LitElement {
     this._config.battery_entities?.forEach(battery => {
       let power = this._getState(battery.entity_power);
       if (battery.invert_power) power = -power;
-      totalBatteryPower += power;
+      totalBatteryPower += power; // Positive is charging, Negative is discharging
     });
 
     // Auto calculate home power if entity is not provided
@@ -266,8 +258,9 @@ export class EmberWattCard extends LitElement {
     if (this._config.home_consumption_entity) {
       homePower = this._getState(this._config.home_consumption_entity);
     } else {
+      // Home = Solar + GridImport - GridExport - BatteryCharging + BatteryDischarging
       homePower = totalSolarPower + gridPower - totalBatteryPower;
-      if (homePower < 0) homePower = 0; // Prevents weird negative readings due to sensor delays
+      if (homePower < 0) homePower = 0; // Precaution
     }
     
     // Autarky calculation
@@ -308,7 +301,7 @@ export class EmberWattCard extends LitElement {
             <div class="node-section home-section">
               <div class="node home" style="--color-home: ${this._config.colors?.home || '#9b59b6'}">
                 <ha-icon class="icon" icon="mdi:home"></ha-icon>
-                <div class="value">${this._formatPower(homePower)} W</div>
+                <div class="value">${this._formatPower(Math.abs(homePower))} W</div>
                 <div class="name">${this._config.name_home || 'Verbrauch'}</div>
               </div>
             </div>
@@ -318,10 +311,24 @@ export class EmberWattCard extends LitElement {
               ${this._config.battery_entities?.map((battery, index) => {
                 let power = this._getState(battery.entity_power);
                 if (battery.invert_power) power = -power;
+                
+                const isCharging = power > 0;
+                const isDischarging = power < 0;
+                let icon = 'mdi:battery';
+                if (isCharging) icon = 'mdi:battery-charging';
+                if (isDischarging) icon = 'mdi:battery-minus';
+
+                // Ensure value is always positive in UI
+                const displayPower = Math.abs(power);
+
                 return html`
                 <div id="battery-${index}" class="node battery" style="--color-battery: ${battery.color || this._config.colors?.battery || '#2ecc71'}">
-                  <ha-icon class="icon" icon="mdi:battery"></ha-icon>
-                  <div class="value">${this._formatPower(Math.abs(power))} W</div>
+                  <ha-icon class="icon" icon="${icon}"></ha-icon>
+                  <div class="value">
+                    ${isCharging ? html`<ha-icon icon="mdi:arrow-down" style="width: 14px; height: 14px; margin-right: 2px; color: var(--color-battery)"></ha-icon>` : ''}
+                    ${isDischarging ? html`<ha-icon icon="mdi:arrow-up" style="width: 14px; height: 14px; margin-right: 2px; color: var(--color-solar)"></ha-icon>` : ''}
+                    ${this._formatPower(displayPower)} W
+                  </div>
                   <div class="soc">${Math.round(this._getState(battery.entity_soc))}%</div>
                   <div class="name">${battery.name || 'Batterie'}</div>
                 </div>
