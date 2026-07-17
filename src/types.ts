@@ -1,6 +1,8 @@
-export interface EmberWattConfig {
   type: string;
   name?: string;
+  name_home?: string;
+  name_grid?: string;
+  always_show_paths?: boolean;
   
   // Entities
   grid_import_entity?: string;

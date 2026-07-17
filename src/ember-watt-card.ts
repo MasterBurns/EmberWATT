@@ -13,6 +13,7 @@ export class EmberWattCard extends LitElement {
   @queryAll('.node') private _nodes!: NodeListOf<HTMLElement>;
   
   @state() private _paths: { id: string, d: string, power: number, color: string, reverse: boolean }[] = [];
+  @state() private _junctions: { id: string, x: number, y: number, color: string }[] = [];
 
   private _resizeObserver!: ResizeObserver;
 
@@ -29,7 +30,8 @@ export class EmberWattCard extends LitElement {
       grid_import_entity: '',
       grid_export_entity: '',
       solar_entities: [],
-      battery_entities: []
+      battery_entities: [],
+      always_show_paths: true
     };
   }
 
@@ -58,14 +60,13 @@ export class EmberWattCard extends LitElement {
     if (container) {
       this._resizeObserver.observe(container);
     }
-    // Initial path update after render
     setTimeout(() => this._updatePaths(), 100);
   }
 
   protected updated(changedProps: PropertyValues): void {
     super.updated(changedProps);
     if (changedProps.has('hass')) {
-      this._updatePaths(); // Re-calculate paths and speeds if power changes
+      this._updatePaths();
     }
   }
 
@@ -91,15 +92,16 @@ export class EmberWattCard extends LitElement {
     const gridCenter = this._getCenter(gridNode, containerRect);
     
     const newPaths: typeof this._paths = [];
+    const newJunctions: typeof this._junctions = [];
+    const alwaysShow = this._config.always_show_paths !== false;
 
-    // Grid to Home Path
+    // --- Grid Path ---
     const gridImport = this._getState(this._config.grid_import_entity);
     const gridExport = this._getState(this._config.grid_export_entity);
-    
-    let gridPower = gridImport - gridExport; // Positive = importing, Negative = exporting
+    let gridPower = gridImport - gridExport;
     let gridColor = this._config.colors?.grid || '#3498db';
     
-    if (Math.abs(gridPower) > 0) {
+    if (Math.abs(gridPower) > 0 || alwaysShow) {
       newPaths.push({
         id: 'grid-home',
         d: `M ${gridCenter.x} ${gridCenter.y} L ${homeCenter.x} ${homeCenter.y}`,
@@ -109,28 +111,52 @@ export class EmberWattCard extends LitElement {
       });
     }
 
-    // Solar Paths
-    if (this._config.solar_entities) {
+    // --- Solar Bus Topology ---
+    let totalSolarPower = 0;
+    if (this._config.solar_entities && this._config.solar_entities.length > 0) {
+      const solarJunction = { x: homeCenter.x, y: homeCenter.y - 70 };
+      let anySolarActive = false;
+      const solarColor = this._config.colors?.solar || '#f1c40f';
+
       this._config.solar_entities.forEach((solar, index) => {
         const node = this.shadowRoot?.querySelector(`#solar-${index}`) as HTMLElement;
         if (node) {
           const center = this._getCenter(node, containerRect);
           const power = this._getState(solar.entity);
-          if (power > 0) {
+          totalSolarPower += power;
+          if (power > 0 || alwaysShow) {
+            anySolarActive = true;
             newPaths.push({
-              id: `solar-${index}-home`,
-              d: `M ${center.x} ${center.y} L ${homeCenter.x} ${homeCenter.y}`,
+              id: `solar-${index}-junction`,
+              d: `M ${center.x} ${center.y} L ${solarJunction.x} ${solarJunction.y}`,
               power: power,
-              color: solar.color || this._config.colors?.solar || '#f1c40f',
+              color: solar.color || solarColor,
               reverse: false
             });
           }
         }
       });
+
+      if (anySolarActive || alwaysShow) {
+        newJunctions.push({ id: 'solar-junc', x: solarJunction.x, y: solarJunction.y, color: solarColor });
+        newPaths.push({
+          id: `solar-junction-home`,
+          d: `M ${solarJunction.x} ${solarJunction.y} L ${homeCenter.x} ${homeCenter.y}`,
+          power: totalSolarPower,
+          color: solarColor,
+          reverse: false
+        });
+      }
     }
 
-    // Battery Paths
-    if (this._config.battery_entities) {
+    // --- Battery Bus Topology ---
+    let totalBatteryPower = 0;
+    if (this._config.battery_entities && this._config.battery_entities.length > 0) {
+      const batteryJunction = { x: homeCenter.x, y: homeCenter.y + 70 };
+      let anyBatteryActive = false;
+      const batteryColor = this._config.colors?.battery || '#2ecc71';
+      let isDischargingToHome = false;
+
       this._config.battery_entities.forEach((battery, index) => {
         const node = this.shadowRoot?.querySelector(`#battery-${index}`) as HTMLElement;
         if (node) {
@@ -138,22 +164,36 @@ export class EmberWattCard extends LitElement {
           let power = this._getState(battery.entity_power);
           if (battery.invert_power) power = -power;
           
-          if (Math.abs(power) > 0) {
-             // Power > 0: Charging (Home to Battery)
-             // Power < 0: Discharging (Battery to Home)
+          totalBatteryPower += power;
+
+          if (Math.abs(power) > 0 || alwaysShow) {
+            anyBatteryActive = true;
+            if (power < 0) isDischargingToHome = true;
             newPaths.push({
-              id: `battery-${index}-home`,
-              d: `M ${center.x} ${center.y} L ${homeCenter.x} ${homeCenter.y}`,
+              id: `battery-${index}-junction`,
+              d: `M ${center.x} ${center.y} L ${batteryJunction.x} ${batteryJunction.y}`,
               power: Math.abs(power),
-              color: battery.color || this._config.colors?.battery || '#2ecc71',
-              reverse: power < 0 // If discharging, dot flows from battery to home (reverse the drawn path)
+              color: battery.color || batteryColor,
+              reverse: power < 0 // discharging flows to junction
             });
           }
         }
       });
+
+      if (anyBatteryActive || alwaysShow) {
+        newJunctions.push({ id: 'battery-junc', x: batteryJunction.x, y: batteryJunction.y, color: batteryColor });
+        newPaths.push({
+          id: `battery-junction-home`,
+          d: `M ${batteryJunction.x} ${batteryJunction.y} L ${homeCenter.x} ${homeCenter.y}`,
+          power: Math.abs(totalBatteryPower),
+          color: batteryColor,
+          reverse: totalBatteryPower < 0 // if total is discharging, flow from junction to home
+        });
+      }
     }
 
     this._paths = newPaths;
+    this._junctions = newJunctions;
   }
 
   private _getState(entityId?: string): number {
@@ -167,28 +207,35 @@ export class EmberWattCard extends LitElement {
   }
 
   private _renderSVG() {
+    const alwaysShow = this._config.always_show_paths !== false;
+    
     return svg`
       <svg class="flow-container">
         ${this._paths.map(path => {
-          // Duration based on power: more power = faster
-          // e.g. 1000W -> 1s, 5000W -> 0.2s. clamp between 0.2 and 3s.
-          const duration = Math.max(0.2, Math.min(3, 2000 / Math.max(1, path.power)));
+          const isFlowing = path.power > 0;
+          const duration = isFlowing ? Math.max(0.2, Math.min(3, 2000 / Math.max(1, path.power))) : 0;
+          const opacity = isFlowing ? 1 : (alwaysShow ? 0.3 : 0);
           
           return svg`
-            <path id="${path.id}" class="flow-path" d="${path.d}" />
-            <circle class="flow-circle" r="4" style="--dot-color: ${path.color}">
-              <animateMotion 
-                dur="${duration}s" 
-                repeatCount="indefinite"
-                keyPoints="${path.reverse ? '1;0' : '0;1'}"
-                keyTimes="0;1"
-                calcMode="linear"
-              >
-                <mpath href="#${path.id}" />
-              </animateMotion>
-            </circle>
+            <path id="${path.id}" class="flow-path" d="${path.d}" style="opacity: ${opacity};" />
+            ${isFlowing ? svg`
+              <circle class="flow-circle" r="4" style="--dot-color: ${path.color}">
+                <animateMotion 
+                  dur="${duration}s" 
+                  repeatCount="indefinite"
+                  keyPoints="${path.reverse ? '1;0' : '0;1'}"
+                  keyTimes="0;1"
+                  calcMode="linear"
+                >
+                  <mpath href="#${path.id}" />
+                </animateMotion>
+              </circle>
+            ` : ''}
           `;
         })}
+        ${this._junctions.map(j => svg`
+          <circle cx="${j.x}" cy="${j.y}" r="3" fill="${j.color}" style="opacity: 0.8" />
+        `)}
       </svg>
     `;
   }
@@ -198,13 +245,36 @@ export class EmberWattCard extends LitElement {
       return html`<ha-card>Loading...</ha-card>`;
     }
 
-    const homePower = this._getState(this._config.home_consumption_entity);
     const gridImport = this._getState(this._config.grid_import_entity);
+    const gridExport = this._getState(this._config.grid_export_entity);
+    const gridPower = gridImport - gridExport;
+
+    let totalSolarPower = 0;
+    this._config.solar_entities?.forEach(solar => {
+      totalSolarPower += this._getState(solar.entity);
+    });
+
+    let totalBatteryPower = 0;
+    this._config.battery_entities?.forEach(battery => {
+      let power = this._getState(battery.entity_power);
+      if (battery.invert_power) power = -power;
+      totalBatteryPower += power;
+    });
+
+    // Auto calculate home power if entity is not provided
+    let homePower = 0;
+    if (this._config.home_consumption_entity) {
+      homePower = this._getState(this._config.home_consumption_entity);
+    } else {
+      homePower = totalSolarPower + gridPower - totalBatteryPower;
+      if (homePower < 0) homePower = 0; // Prevents weird negative readings due to sensor delays
+    }
     
     // Autarky calculation
     let autarky = 100;
     if (homePower > 0) {
       autarky = Math.max(0, ((homePower - gridImport) / homePower) * 100);
+      if (autarky > 100) autarky = 100;
     }
 
     return html`
@@ -218,8 +288,8 @@ export class EmberWattCard extends LitElement {
             <div class="node-section grid-section">
               <div class="node grid" style="--color-grid: ${this._config.colors?.grid || '#3498db'}">
                 <ha-icon class="icon" icon="mdi:transmission-tower"></ha-icon>
-                <div class="value">${this._formatPower(Math.abs(gridImport - this._getState(this._config.grid_export_entity)))} W</div>
-                <div class="name">Netz</div>
+                <div class="value">${this._formatPower(Math.abs(gridPower))} W</div>
+                <div class="name">${this._config.name_grid || 'Netz'}</div>
               </div>
             </div>
 
@@ -239,7 +309,7 @@ export class EmberWattCard extends LitElement {
               <div class="node home" style="--color-home: ${this._config.colors?.home || '#9b59b6'}">
                 <ha-icon class="icon" icon="mdi:home"></ha-icon>
                 <div class="value">${this._formatPower(homePower)} W</div>
-                <div class="name">Verbrauch</div>
+                <div class="name">${this._config.name_home || 'Verbrauch'}</div>
               </div>
             </div>
 

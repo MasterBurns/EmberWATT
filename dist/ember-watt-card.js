@@ -29,11 +29,11 @@ var e = globalThis, t = e.ShadowRoot && (e.ShadyCSS === void 0 || e.ShadyCSS.nat
 	let t = "";
 	for (let n of e.cssRules) t += n.cssText;
 	return a(t);
-})(e) : e, { is: l, defineProperty: u, getOwnPropertyDescriptor: d, getOwnPropertyNames: ee, getOwnPropertySymbols: te, getPrototypeOf: ne } = Object, f = globalThis, p = f.trustedTypes, re = p ? p.emptyScript : "", ie = f.reactiveElementPolyfillSupport, m = (e, t) => e, h = {
+})(e) : e, { is: l, defineProperty: u, getOwnPropertyDescriptor: d, getOwnPropertyNames: f, getOwnPropertySymbols: ee, getPrototypeOf: te } = Object, p = globalThis, m = p.trustedTypes, ne = m ? m.emptyScript : "", re = p.reactiveElementPolyfillSupport, h = (e, t) => e, g = {
 	toAttribute(e, t) {
 		switch (t) {
 			case Boolean:
-				e = e ? re : null;
+				e = e ? ne : null;
 				break;
 			case Object:
 			case Array: e = e == null ? e : JSON.stringify(e);
@@ -58,23 +58,23 @@ var e = globalThis, t = e.ShadowRoot && (e.ShadyCSS === void 0 || e.ShadyCSS.nat
 		}
 		return n;
 	}
-}, g = (e, t) => !l(e, t), _ = {
+}, _ = (e, t) => !l(e, t), v = {
 	attribute: !0,
 	type: String,
-	converter: h,
+	converter: g,
 	reflect: !1,
 	useDefault: !1,
-	hasChanged: g
+	hasChanged: _
 };
-Symbol.metadata ??= Symbol("metadata"), f.litPropertyMetadata ??= /* @__PURE__ */ new WeakMap();
-var v = class extends HTMLElement {
+Symbol.metadata ??= Symbol("metadata"), p.litPropertyMetadata ??= /* @__PURE__ */ new WeakMap();
+var y = class extends HTMLElement {
 	static addInitializer(e) {
 		this._$Ei(), (this.l ??= []).push(e);
 	}
 	static get observedAttributes() {
 		return this.finalize(), this._$Eh && [...this._$Eh.keys()];
 	}
-	static createProperty(e, t = _) {
+	static createProperty(e, t = v) {
 		if (t.state && (t.attribute = !1), this._$Ei(), this.prototype.hasOwnProperty(e) && ((t = Object.create(t)).wrapped = !0), this.elementProperties.set(e, t), !t.noAccessor) {
 			let n = Symbol(), r = this.getPropertyDescriptor(e, n, t);
 			r !== void 0 && u(this.prototype, e, r);
@@ -100,17 +100,17 @@ var v = class extends HTMLElement {
 		};
 	}
 	static getPropertyOptions(e) {
-		return this.elementProperties.get(e) ?? _;
+		return this.elementProperties.get(e) ?? v;
 	}
 	static _$Ei() {
-		if (this.hasOwnProperty(m("elementProperties"))) return;
-		let e = ne(this);
+		if (this.hasOwnProperty(h("elementProperties"))) return;
+		let e = te(this);
 		e.finalize(), e.l !== void 0 && (this.l = [...e.l]), this.elementProperties = new Map(e.elementProperties);
 	}
 	static finalize() {
-		if (this.hasOwnProperty(m("finalized"))) return;
-		if (this.finalized = !0, this._$Ei(), this.hasOwnProperty(m("properties"))) {
-			let e = this.properties, t = [...ee(e), ...te(e)];
+		if (this.hasOwnProperty(h("finalized"))) return;
+		if (this.finalized = !0, this._$Ei(), this.hasOwnProperty(h("properties"))) {
+			let e = this.properties, t = [...f(e), ...ee(e)];
 			for (let n of t) this.createProperty(n, e[n]);
 		}
 		let e = this[Symbol.metadata];
@@ -171,14 +171,14 @@ var v = class extends HTMLElement {
 	_$ET(e, t) {
 		let n = this.constructor.elementProperties.get(e), r = this.constructor._$Eu(e, n);
 		if (r !== void 0 && !0 === n.reflect) {
-			let i = (n.converter?.toAttribute === void 0 ? h : n.converter).toAttribute(t, n.type);
+			let i = (n.converter?.toAttribute === void 0 ? g : n.converter).toAttribute(t, n.type);
 			this._$Em = e, i == null ? this.removeAttribute(r) : this.setAttribute(r, i), this._$Em = null;
 		}
 	}
 	_$AK(e, t) {
 		let n = this.constructor, r = n._$Eh.get(e);
 		if (r !== void 0 && this._$Em !== r) {
-			let e = n.getPropertyOptions(r), i = typeof e.converter == "function" ? { fromAttribute: e.converter } : e.converter?.fromAttribute === void 0 ? h : e.converter;
+			let e = n.getPropertyOptions(r), i = typeof e.converter == "function" ? { fromAttribute: e.converter } : e.converter?.fromAttribute === void 0 ? g : e.converter;
 			this._$Em = r;
 			let a = i.fromAttribute(t, e.type);
 			this[r] = a ?? this._$Ej?.get(r) ?? a, this._$Em = null;
@@ -187,7 +187,7 @@ var v = class extends HTMLElement {
 	requestUpdate(e, t, n, r = !1, i) {
 		if (e !== void 0) {
 			let a = this.constructor;
-			if (!1 === r && (i = this[e]), n ??= a.getPropertyOptions(e), !((n.hasChanged ?? g)(i, t) || n.useDefault && n.reflect && i === this._$Ej?.get(e) && !this.hasAttribute(a._$Eu(e, n)))) return;
+			if (!1 === r && (i = this[e]), n ??= a.getPropertyOptions(e), !((n.hasChanged ?? _)(i, t) || n.useDefault && n.reflect && i === this._$Ej?.get(e) && !this.hasAttribute(a._$Eu(e, n)))) return;
 			this.C(e, t, n);
 		}
 		!1 === this.isUpdatePending && (this._$ES = this._$EP());
@@ -251,24 +251,24 @@ var v = class extends HTMLElement {
 	updated(e) {}
 	firstUpdated(e) {}
 };
-v.elementStyles = [], v.shadowRootOptions = { mode: "open" }, v[m("elementProperties")] = /* @__PURE__ */ new Map(), v[m("finalized")] = /* @__PURE__ */ new Map(), ie?.({ ReactiveElement: v }), (f.reactiveElementVersions ??= []).push("2.1.2");
+y.elementStyles = [], y.shadowRootOptions = { mode: "open" }, y[h("elementProperties")] = /* @__PURE__ */ new Map(), y[h("finalized")] = /* @__PURE__ */ new Map(), re?.({ ReactiveElement: y }), (p.reactiveElementVersions ??= []).push("2.1.2");
 //#endregion
 //#region node_modules/lit-html/lit-html.js
-var y = globalThis, b = (e) => e, x = y.trustedTypes, S = x ? x.createPolicy("lit-html", { createHTML: (e) => e }) : void 0, C = "$lit$", w = `lit$${Math.random().toFixed(9).slice(2)}$`, T = "?" + w, ae = `<${T}>`, E = document, D = () => E.createComment(""), O = (e) => e === null || typeof e != "object" && typeof e != "function", k = Array.isArray, oe = (e) => k(e) || typeof e?.[Symbol.iterator] == "function", A = "[ 	\n\f\r]", j = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, se = /-->/g, ce = />/g, M = RegExp(`>|${A}(?:([^\\s"'>=/]+)(${A}*=${A}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`, "g"), le = /'/g, ue = /"/g, N = /^(?:script|style|textarea|title)$/i, P = (e) => (t, ...n) => ({
+var b = globalThis, x = (e) => e, S = b.trustedTypes, ie = S ? S.createPolicy("lit-html", { createHTML: (e) => e }) : void 0, C = "$lit$", w = `lit$${Math.random().toFixed(9).slice(2)}$`, T = "?" + w, ae = `<${T}>`, E = document, D = () => E.createComment(""), O = (e) => e === null || typeof e != "object" && typeof e != "function", k = Array.isArray, oe = (e) => k(e) || typeof e?.[Symbol.iterator] == "function", A = "[ 	\n\f\r]", j = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, M = /-->/g, se = />/g, N = RegExp(`>|${A}(?:([^\\s"'>=/]+)(${A}*=${A}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`, "g"), ce = /'/g, le = /"/g, P = /^(?:script|style|textarea|title)$/i, ue = (e) => (t, ...n) => ({
 	_$litType$: e,
 	strings: t,
 	values: n
-}), F = P(1), I = P(2), L = Symbol.for("lit-noChange"), R = Symbol.for("lit-nothing"), z = /* @__PURE__ */ new WeakMap(), B = E.createTreeWalker(E, 129);
+}), F = ue(1), I = ue(2), L = Symbol.for("lit-noChange"), R = Symbol.for("lit-nothing"), z = /* @__PURE__ */ new WeakMap(), B = E.createTreeWalker(E, 129);
 function V(e, t) {
 	if (!k(e) || !e.hasOwnProperty("raw")) throw Error("invalid template strings array");
-	return S === void 0 ? t : S.createHTML(t);
+	return ie === void 0 ? t : ie.createHTML(t);
 }
 var de = (e, t) => {
 	let n = e.length - 1, r = [], i, a = t === 2 ? "<svg>" : t === 3 ? "<math>" : "", o = j;
 	for (let t = 0; t < n; t++) {
 		let n = e[t], s, c, l = -1, u = 0;
-		for (; u < n.length && (o.lastIndex = u, c = o.exec(n), c !== null);) u = o.lastIndex, o === j ? c[1] === "!--" ? o = se : c[1] === void 0 ? c[2] === void 0 ? c[3] !== void 0 && (o = M) : (N.test(c[2]) && (i = RegExp("</" + c[2], "g")), o = M) : o = ce : o === M ? c[0] === ">" ? (o = i ?? j, l = -1) : c[1] === void 0 ? l = -2 : (l = o.lastIndex - c[2].length, s = c[1], o = c[3] === void 0 ? M : c[3] === "\"" ? ue : le) : o === ue || o === le ? o = M : o === se || o === ce ? o = j : (o = M, i = void 0);
-		let d = o === M && e[t + 1].startsWith("/>") ? " " : "";
+		for (; u < n.length && (o.lastIndex = u, c = o.exec(n), c !== null);) u = o.lastIndex, o === j ? c[1] === "!--" ? o = M : c[1] === void 0 ? c[2] === void 0 ? c[3] !== void 0 && (o = N) : (P.test(c[2]) && (i = RegExp("</" + c[2], "g")), o = N) : o = se : o === N ? c[0] === ">" ? (o = i ?? j, l = -1) : c[1] === void 0 ? l = -2 : (l = o.lastIndex - c[2].length, s = c[1], o = c[3] === void 0 ? N : c[3] === "\"" ? le : ce) : o === le || o === ce ? o = N : o === M || o === se ? o = j : (o = N, i = void 0);
+		let d = o === N && e[t + 1].startsWith("/>") ? " " : "";
 		a += o === j ? n + ae : l >= 0 ? (r.push(s), n.slice(0, l) + C + n.slice(l) + w + d) : n + w + (l === -2 ? t : d);
 	}
 	return [V(e, a + (e[n] || "<?>") + (t === 2 ? "</svg>" : t === 3 ? "</math>" : "")), r];
@@ -296,10 +296,10 @@ var de = (e, t) => {
 					type: 6,
 					index: a
 				}), i.removeAttribute(e));
-				if (N.test(i.tagName)) {
+				if (P.test(i.tagName)) {
 					let e = i.textContent.split(w), t = e.length - 1;
 					if (t > 0) {
-						i.textContent = x ? x.emptyScript : "";
+						i.textContent = S ? S.emptyScript : "";
 						for (let n = 0; n < t; n++) i.append(e[n], D()), B.nextNode(), c.push({
 							type: 2,
 							index: ++a
@@ -407,8 +407,8 @@ var fe = class {
 	}
 	_$AR(e = this._$AA.nextSibling, t) {
 		for (this._$AP?.(!1, !0, t); e !== this._$AB;) {
-			let t = b(e).nextSibling;
-			b(e).remove(), e = t;
+			let t = x(e).nextSibling;
+			x(e).remove(), e = t;
 		}
 	}
 	setConnected(e) {
@@ -472,8 +472,8 @@ var fe = class {
 	_$AI(e) {
 		U(this, e);
 	}
-}, _e = y.litHtmlPolyfillSupport;
-_e?.(H, W), (y.litHtmlVersions ??= []).push("3.3.3");
+}, _e = b.litHtmlPolyfillSupport;
+_e?.(H, W), (b.litHtmlVersions ??= []).push("3.3.3");
 var ve = (e, t, n) => {
 	let r = n?.renderBefore ?? t, i = r._$litPart$;
 	if (i === void 0) {
@@ -481,7 +481,7 @@ var ve = (e, t, n) => {
 		r._$litPart$ = i = new W(t.insertBefore(D(), e), e, void 0, n ?? {});
 	}
 	return i._$AI(e), i;
-}, K = globalThis, q = class extends v {
+}, K = globalThis, q = class extends y {
 	constructor() {
 		super(...arguments), this.renderOptions = { host: this }, this._$Do = void 0;
 	}
@@ -515,9 +515,9 @@ var J = (e) => (t, n) => {
 }, be = {
 	attribute: !0,
 	type: String,
-	converter: h,
+	converter: g,
 	reflect: !1,
-	hasChanged: g
+	hasChanged: _
 }, xe = (e = be, t, n) => {
 	let { kind: r, metadata: i } = n, a = globalThis.litPropertyMetadata.get(i);
 	if (a === void 0 && globalThis.litPropertyMetadata.set(i, a = /* @__PURE__ */ new Map()), r === "setter" && ((e = Object.create(e)).wrapped = !0), a.set(n.name, e), r === "accessor") {
@@ -774,7 +774,7 @@ var Q = class extends q {
 			delete e[t.configValue], this._config = e;
 		} else this._config = {
 			...this._config,
-			[t.configValue]: t.value
+			[t.configValue]: t.checked === void 0 ? t.value : t.checked
 		};
 		let n = new CustomEvent("config-changed", {
 			detail: { config: this._config },
@@ -835,14 +835,39 @@ var Q = class extends q {
 	render() {
 		return !this.hass || !this._config ? F`` : F`
       <div class="card-config">
+        <h3>Allgemein</h3>
+        <div class="row">
+          <ha-textfield
+            label="Name (Verbrauch)"
+            .value=${this._config.name_home || ""}
+            .configValue=${"name_home"}
+            @input=${this._valueChanged}
+          ></ha-textfield>
+          <ha-textfield
+            label="Name (Netz)"
+            .value=${this._config.name_grid || ""}
+            .configValue=${"name_grid"}
+            @input=${this._valueChanged}
+          ></ha-textfield>
+        </div>
+        <div class="row" style="align-items: center; margin-top: 8px;">
+          <ha-switch
+            .checked=${this._config.always_show_paths !== !1}
+            .configValue=${"always_show_paths"}
+            @change=${this._valueChanged}
+          ></ha-switch>
+          <span style="margin-left: 8px;">Pfade immer sichtbar (animieren nur bei Leistungsfluss)</span>
+        </div>
+
         <h3>Basis Entitäten</h3>
+        <p class="description">Hinweis: Wenn "Hausverbrauch" leer bleibt, wird er automatisch berechnet.</p>
         <ha-entity-picker
           .hass=${this.hass}
           .value=${this._config.home_consumption_entity}
           .configValue=${"home_consumption_entity"}
           @value-changed=${this._valueChanged}
           allow-custom-entity
-          label="Hausverbrauch (W)"
+          label="Hausverbrauch (W) - Optional"
         ></ha-entity-picker>
 
         <ha-entity-picker
@@ -928,6 +953,19 @@ var Q = class extends q {
         font-size: 1.1em;
         font-weight: 500;
       }
+      .description {
+        font-size: 0.9em;
+        color: var(--secondary-text-color);
+        margin-top: -8px;
+        margin-bottom: 8px;
+      }
+      .row {
+        display: flex;
+        gap: 12px;
+      }
+      .row > * {
+        flex: 1;
+      }
       .array-item {
         display: flex;
         flex-direction: column;
@@ -951,7 +989,7 @@ Z([Y({ attribute: !1 })], Q.prototype, "hass", void 0), Z([X()], Q.prototype, "_
 //#region src/ember-watt-card.ts
 var $ = class extends q {
 	constructor(...e) {
-		super(...e), this._paths = [];
+		super(...e), this._paths = [], this._junctions = [];
 	}
 	static {
 		this.styles = Te;
@@ -966,7 +1004,8 @@ var $ = class extends q {
 			grid_import_entity: "",
 			grid_export_entity: "",
 			solar_entities: [],
-			battery_entities: []
+			battery_entities: [],
+			always_show_paths: !0
 		};
 	}
 	setConfig(e) {
@@ -999,38 +1038,77 @@ var $ = class extends q {
 		if (!e) return;
 		let t = e.getBoundingClientRect(), n = this.shadowRoot?.querySelector(".node.home"), r = this.shadowRoot?.querySelector(".node.grid");
 		if (!n || !r) return;
-		let i = this._getCenter(n, t), a = this._getCenter(r, t), o = [], s = this._getState(this._config.grid_import_entity) - this._getState(this._config.grid_export_entity), c = this._config.colors?.grid || "#3498db";
-		Math.abs(s) > 0 && o.push({
+		let i = this._getCenter(n, t), a = this._getCenter(r, t), o = [], s = [], c = this._config.always_show_paths !== !1, l = this._getState(this._config.grid_import_entity) - this._getState(this._config.grid_export_entity), u = this._config.colors?.grid || "#3498db";
+		(Math.abs(l) > 0 || c) && o.push({
 			id: "grid-home",
 			d: `M ${a.x} ${a.y} L ${i.x} ${i.y}`,
-			power: Math.abs(s),
-			color: c,
-			reverse: s < 0
-		}), this._config.solar_entities && this._config.solar_entities.forEach((e, n) => {
-			let r = this.shadowRoot?.querySelector(`#solar-${n}`);
-			if (r) {
-				let a = this._getCenter(r, t), s = this._getState(e.entity);
-				s > 0 && o.push({
-					id: `solar-${n}-home`,
-					d: `M ${a.x} ${a.y} L ${i.x} ${i.y}`,
-					power: s,
-					color: e.color || this._config.colors?.solar || "#f1c40f",
-					reverse: !1
-				});
-			}
-		}), this._config.battery_entities && this._config.battery_entities.forEach((e, n) => {
-			let r = this.shadowRoot?.querySelector(`#battery-${n}`);
-			if (r) {
-				let a = this._getCenter(r, t), s = this._getState(e.entity_power);
-				e.invert_power && (s = -s), Math.abs(s) > 0 && o.push({
-					id: `battery-${n}-home`,
-					d: `M ${a.x} ${a.y} L ${i.x} ${i.y}`,
-					power: Math.abs(s),
-					color: e.color || this._config.colors?.battery || "#2ecc71",
-					reverse: s < 0
-				});
-			}
-		}), this._paths = o;
+			power: Math.abs(l),
+			color: u,
+			reverse: l < 0
+		});
+		let d = 0;
+		if (this._config.solar_entities && this._config.solar_entities.length > 0) {
+			let e = {
+				x: i.x,
+				y: i.y - 70
+			}, n = !1, r = this._config.colors?.solar || "#f1c40f";
+			this._config.solar_entities.forEach((i, a) => {
+				let s = this.shadowRoot?.querySelector(`#solar-${a}`);
+				if (s) {
+					let l = this._getCenter(s, t), u = this._getState(i.entity);
+					d += u, (u > 0 || c) && (n = !0, o.push({
+						id: `solar-${a}-junction`,
+						d: `M ${l.x} ${l.y} L ${e.x} ${e.y}`,
+						power: u,
+						color: i.color || r,
+						reverse: !1
+					}));
+				}
+			}), (n || c) && (s.push({
+				id: "solar-junc",
+				x: e.x,
+				y: e.y,
+				color: r
+			}), o.push({
+				id: "solar-junction-home",
+				d: `M ${e.x} ${e.y} L ${i.x} ${i.y}`,
+				power: d,
+				color: r,
+				reverse: !1
+			}));
+		}
+		let f = 0;
+		if (this._config.battery_entities && this._config.battery_entities.length > 0) {
+			let e = {
+				x: i.x,
+				y: i.y + 70
+			}, n = !1, r = this._config.colors?.battery || "#2ecc71";
+			this._config.battery_entities.forEach((i, a) => {
+				let s = this.shadowRoot?.querySelector(`#battery-${a}`);
+				if (s) {
+					let l = this._getCenter(s, t), u = this._getState(i.entity_power);
+					i.invert_power && (u = -u), f += u, (Math.abs(u) > 0 || c) && (n = !0, o.push({
+						id: `battery-${a}-junction`,
+						d: `M ${l.x} ${l.y} L ${e.x} ${e.y}`,
+						power: Math.abs(u),
+						color: i.color || r,
+						reverse: u < 0
+					}));
+				}
+			}), (n || c) && (s.push({
+				id: "battery-junc",
+				x: e.x,
+				y: e.y,
+				color: r
+			}), o.push({
+				id: "battery-junction-home",
+				d: `M ${e.x} ${e.y} L ${i.x} ${i.y}`,
+				power: Math.abs(f),
+				color: r,
+				reverse: f < 0
+			}));
+		}
+		this._paths = o, this._junctions = s;
 	}
 	_getState(e) {
 		if (!e || !this.hass || !this.hass.states[e]) return 0;
@@ -1041,34 +1119,51 @@ var $ = class extends q {
 		return Math.round(e).toString();
 	}
 	_renderSVG() {
+		let e = this._config.always_show_paths !== !1;
 		return I`
       <svg class="flow-container">
-        ${this._paths.map((e) => {
-			let t = Math.max(.2, Math.min(3, 2e3 / Math.max(1, e.power)));
+        ${this._paths.map((t) => {
+			let n = t.power > 0, r = n ? Math.max(.2, Math.min(3, 2e3 / Math.max(1, t.power))) : 0, i = n ? 1 : e ? .3 : 0;
 			return I`
-            <path id="${e.id}" class="flow-path" d="${e.d}" />
-            <circle class="flow-circle" r="4" style="--dot-color: ${e.color}">
-              <animateMotion 
-                dur="${t}s" 
-                repeatCount="indefinite"
-                keyPoints="${e.reverse ? "1;0" : "0;1"}"
-                keyTimes="0;1"
-                calcMode="linear"
-              >
-                <mpath href="#${e.id}" />
-              </animateMotion>
-            </circle>
+            <path id="${t.id}" class="flow-path" d="${t.d}" style="opacity: ${i};" />
+            ${n ? I`
+              <circle class="flow-circle" r="4" style="--dot-color: ${t.color}">
+                <animateMotion 
+                  dur="${r}s" 
+                  repeatCount="indefinite"
+                  keyPoints="${t.reverse ? "1;0" : "0;1"}"
+                  keyTimes="0;1"
+                  calcMode="linear"
+                >
+                  <mpath href="#${t.id}" />
+                </animateMotion>
+              </circle>
+            ` : ""}
           `;
 		})}
+        ${this._junctions.map((e) => I`
+          <circle cx="${e.x}" cy="${e.y}" r="3" fill="${e.color}" style="opacity: 0.8" />
+        `)}
       </svg>
     `;
 	}
 	render() {
 		if (!this._config || !this.hass) return F`<ha-card>Loading...</ha-card>`;
-		let e = this._getState(this._config.home_consumption_entity), t = this._getState(this._config.grid_import_entity), n = 100;
-		return e > 0 && (n = Math.max(0, (e - t) / e * 100)), F`
+		let e = this._getState(this._config.grid_import_entity), t = e - this._getState(this._config.grid_export_entity), n = 0;
+		this._config.solar_entities?.forEach((e) => {
+			n += this._getState(e.entity);
+		});
+		let r = 0;
+		this._config.battery_entities?.forEach((e) => {
+			let t = this._getState(e.entity_power);
+			e.invert_power && (t = -t), r += t;
+		});
+		let i = 0;
+		this._config.home_consumption_entity ? i = this._getState(this._config.home_consumption_entity) : (i = n + t - r, i < 0 && (i = 0));
+		let a = 100;
+		return i > 0 && (a = Math.max(0, (i - e) / i * 100), a > 100 && (a = 100)), F`
       <ha-card>
-        <div class="autarky">Autarkie: ${n.toFixed(0)}%</div>
+        <div class="autarky">Autarkie: ${a.toFixed(0)}%</div>
         <div class="card-content">
           ${this._renderSVG()}
           
@@ -1077,8 +1172,8 @@ var $ = class extends q {
             <div class="node-section grid-section">
               <div class="node grid" style="--color-grid: ${this._config.colors?.grid || "#3498db"}">
                 <ha-icon class="icon" icon="mdi:transmission-tower"></ha-icon>
-                <div class="value">${this._formatPower(Math.abs(t - this._getState(this._config.grid_export_entity)))} W</div>
-                <div class="name">Netz</div>
+                <div class="value">${this._formatPower(Math.abs(t))} W</div>
+                <div class="name">${this._config.name_grid || "Netz"}</div>
               </div>
             </div>
 
@@ -1097,8 +1192,8 @@ var $ = class extends q {
             <div class="node-section home-section">
               <div class="node home" style="--color-home: ${this._config.colors?.home || "#9b59b6"}">
                 <ha-icon class="icon" icon="mdi:home"></ha-icon>
-                <div class="value">${this._formatPower(e)} W</div>
-                <div class="name">Verbrauch</div>
+                <div class="value">${this._formatPower(i)} W</div>
+                <div class="name">${this._config.name_home || "Verbrauch"}</div>
               </div>
             </div>
 
@@ -1122,7 +1217,7 @@ var $ = class extends q {
     `;
 	}
 };
-Z([Y({ attribute: !1 })], $.prototype, "hass", void 0), Z([X()], $.prototype, "_config", void 0), Z([we(".node")], $.prototype, "_nodes", void 0), Z([X()], $.prototype, "_paths", void 0), $ = Z([J("ember-watt-card")], $), window.customCards = window.customCards || [], window.customCards.push({
+Z([Y({ attribute: !1 })], $.prototype, "hass", void 0), Z([X()], $.prototype, "_config", void 0), Z([we(".node")], $.prototype, "_nodes", void 0), Z([X()], $.prototype, "_paths", void 0), Z([X()], $.prototype, "_junctions", void 0), $ = Z([J("ember-watt-card")], $), window.customCards = window.customCards || [], window.customCards.push({
 	type: "ember-watt-card",
 	name: "EmberWATT Card",
 	preview: !0,

@@ -28,12 +28,11 @@ export class EmberWattCardEditor extends LitElement {
       } else {
         this._config = {
           ...this._config,
-          [target.configValue]: target.value,
+          [target.configValue]: target.checked !== undefined ? target.checked : target.value,
         };
       }
     }
     
-    // Fire config-changed event
     const event = new CustomEvent('config-changed', {
       detail: { config: this._config },
       bubbles: true,
@@ -92,14 +91,39 @@ export class EmberWattCardEditor extends LitElement {
 
     return html`
       <div class="card-config">
+        <h3>Allgemein</h3>
+        <div class="row">
+          <ha-textfield
+            label="Name (Verbrauch)"
+            .value=${this._config.name_home || ''}
+            .configValue=${'name_home'}
+            @input=${this._valueChanged}
+          ></ha-textfield>
+          <ha-textfield
+            label="Name (Netz)"
+            .value=${this._config.name_grid || ''}
+            .configValue=${'name_grid'}
+            @input=${this._valueChanged}
+          ></ha-textfield>
+        </div>
+        <div class="row" style="align-items: center; margin-top: 8px;">
+          <ha-switch
+            .checked=${this._config.always_show_paths !== false}
+            .configValue=${'always_show_paths'}
+            @change=${this._valueChanged}
+          ></ha-switch>
+          <span style="margin-left: 8px;">Pfade immer sichtbar (animieren nur bei Leistungsfluss)</span>
+        </div>
+
         <h3>Basis Entitäten</h3>
+        <p class="description">Hinweis: Wenn "Hausverbrauch" leer bleibt, wird er automatisch berechnet.</p>
         <ha-entity-picker
           .hass=${this.hass}
           .value=${this._config.home_consumption_entity}
           .configValue=${'home_consumption_entity'}
           @value-changed=${this._valueChanged}
           allow-custom-entity
-          label="Hausverbrauch (W)"
+          label="Hausverbrauch (W) - Optional"
         ></ha-entity-picker>
 
         <ha-entity-picker
@@ -185,6 +209,19 @@ export class EmberWattCardEditor extends LitElement {
         margin: 16px 0 8px 0;
         font-size: 1.1em;
         font-weight: 500;
+      }
+      .description {
+        font-size: 0.9em;
+        color: var(--secondary-text-color);
+        margin-top: -8px;
+        margin-bottom: 8px;
+      }
+      .row {
+        display: flex;
+        gap: 12px;
+      }
+      .row > * {
+        flex: 1;
       }
       .array-item {
         display: flex;
