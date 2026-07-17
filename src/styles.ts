@@ -86,6 +86,40 @@ export const styles = css`
     flex-wrap: wrap;
     justify-content: center;
     gap: 16px;
+    align-items: flex-start;
+  }
+
+  /* Battery Groups */
+  .battery-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border: 1px solid var(--color-battery);
+    border-radius: 20px;
+    padding: 24px 16px 16px 16px;
+    position: relative;
+    background: rgba(255, 255, 255, 0.02);
+    box-shadow: inset 0 0 15px rgba(46, 204, 113, 0.05);
+  }
+
+  .battery-group-title {
+    position: absolute;
+    top: -10px;
+    background: var(--ember-bg-color);
+    padding: 0 12px;
+    font-size: 12px;
+    color: var(--color-battery);
+    font-weight: bold;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+  }
+
+  .battery-group-content {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 16px;
   }
 
   /* Individual Node */
@@ -94,18 +128,19 @@ export const styles = css`
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    width: 84px;
-    height: 84px;
-    border-radius: 50%;
+    min-width: 90px;
+    padding: 12px 16px;
+    border-radius: 16px;
     background: rgba(255, 255, 255, 0.05);
     border: 2px solid transparent;
     z-index: 10;
     position: relative;
+    box-sizing: border-box;
   }
 
   .node.home {
-    width: 100px;
-    height: 100px;
+    min-width: 110px;
+    padding: 16px 20px;
     border-color: var(--color-home);
     box-shadow: 0 0 15px rgba(155, 89, 182, 0.2);
   }
@@ -116,8 +151,6 @@ export const styles = css`
   }
 
   .node.battery {
-    width: 95px;
-    height: 95px;
     border-color: var(--color-battery);
     box-shadow: 0 0 15px rgba(46, 204, 113, 0.2);
   }
@@ -135,24 +168,24 @@ export const styles = css`
   .value {
     font-size: 14px;
     font-weight: bold;
-    text-align: center;
+    display: flex;
+    align-items: center;
   }
   
   .name {
     font-size: 11px;
     opacity: 0.7;
     text-align: center;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 85px;
-    margin-top: 2px;
+    margin-top: 4px;
+    word-break: break-word;
+    max-width: 100%;
   }
 
   .soc {
-    font-size: 11px;
+    font-size: 12px;
     color: var(--color-battery);
     margin-top: 2px;
+    font-weight: bold;
   }
 
   .autarky {
@@ -181,6 +214,7 @@ export const styles = css`
     stroke: var(--path-color);
     stroke-width: 2;
     stroke-linecap: round;
+    stroke-linejoin: round;
   }
 
   .flow-circle {

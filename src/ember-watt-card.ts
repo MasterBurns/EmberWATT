@@ -5,16 +5,6 @@ import { EmberWattConfig } from './types';
 import { styles } from './styles';
 import './editor';
 
-interface VirtualBattery {
-  id: string;
-  name: string;
-  group?: string;
-  power: number; // Positive = Charging, Negative = Discharging
-  soc: number;
-  count: number;
-  color?: string;
-}
-
 @customElement('ember-watt-card')
 export class EmberWattCard extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;
@@ -83,52 +73,14 @@ export class EmberWattCard extends LitElement {
     };
   }
 
-  private get _virtualBatteries(): VirtualBattery[] {
-    const virtuals: VirtualBattery[] = [];
-    if (!this._config?.battery_entities) return virtuals;
-
-    this._config.battery_entities.forEach((battery, index) => {
-      let power = this._getState(battery.entity_power);
-      if (battery.invert_power) power = -power;
-      const soc = this._getState(battery.entity_soc);
-
-      if (battery.group && battery.group.trim() !== '') {
-        const existing = virtuals.find(v => v.group === battery.group);
-        if (existing) {
-          existing.power += power;
-          existing.soc += soc; // will average later
-          existing.count += 1;
-        } else {
-          virtuals.push({
-            id: `battery-group-${battery.group.replace(/\\s+/g, '-')}`,
-            name: battery.group,
-            group: battery.group,
-            power: power,
-            soc: soc,
-            count: 1,
-            color: battery.color
-          });
-        }
-      } else {
-        virtuals.push({
-          id: `battery-${index}`,
-          name: battery.name || 'Batterie',
-          power: power,
-          soc: soc,
-          count: 1,
-          color: battery.color
-        });
-      }
-    });
-
-    // Average the SOC for grouped batteries
-    virtuals.forEach(v => {
-      if (v.count > 1) {
-        v.soc = v.soc / v.count;
-      }
-    });
-
-    return virtuals;
+  private _getEdges(element: HTMLElement, containerRect: DOMRect) {
+    const rect = element.getBoundingClientRect();
+    return {
+      top: rect.top - containerRect.top,
+      bottom: rect.bottom - containerRect.top,
+      left: rect.left - containerRect.left,
+      right: rect.right - containerRect.left
+    };
   }
 
   private _updatePaths() {
@@ -142,7 +94,10 @@ export class EmberWattCard extends LitElement {
     if (!homeNode || !gridNode) return;
 
     const homeCenter = this._getCenter(homeNode, containerRect);
+    const homeEdges = this._getEdges(homeNode, containerRect);
+    
     const gridCenter = this._getCenter(gridNode, containerRect);
+    const gridEdges = this._getEdges(gridNode, containerRect);
     
     const newPaths: typeof this._paths = [];
     const newJunctions: typeof this._junctions = [];
@@ -155,8 +110,8 @@ export class EmberWattCard extends LitElement {
     let gridColor = this._config.colors?.grid || '#3498db';
     
     if (Math.abs(gridPower) > 0 || alwaysShow) {
-      const startX = gridCenter.x + 40; // right edge of grid bubble
-      const endX = homeCenter.x - 50; // left edge of home bubble
+      const startX = gridEdges.right; // right edge of grid bubble
+      const endX = homeEdges.left; // left edge of home bubble
       newPaths.push({
         id: 'grid-home',
         d: `M ${startX} ${gridCenter.y} L ${endX} ${homeCenter.y}`,
@@ -173,21 +128,24 @@ export class EmberWattCard extends LitElement {
       let totalSolarPower = 0;
       
       const solarNodes = Array.from(this.shadowRoot?.querySelectorAll('.node.solar') || []);
-      const solarCenters = solarNodes.map(n => this._getCenter(n as HTMLElement, containerRect));
-      const maxSolarY = solarCenters.length > 0 ? Math.max(...solarCenters.map(c => c.y)) : homeCenter.y - 120;
-      const solarBusY = Math.min(maxSolarY + 60, homeCenter.y - 60);
+      const solarEdges = solarNodes.map(n => this._getEdges(n as HTMLElement, containerRect));
+      // Busbar should be below all solar nodes
+      const maxSolarY = solarEdges.length > 0 ? Math.max(...solarEdges.map(e => e.bottom)) : homeEdges.top - 80;
+      // Between lowest solar node and home node
+      const solarBusY = Math.min(maxSolarY + 40, homeEdges.top - 40);
 
       this._config.solar_entities.forEach((solar, index) => {
         const node = this.shadowRoot?.querySelector(`#solar-${index}`) as HTMLElement;
         if (node) {
           const center = this._getCenter(node, containerRect);
+          const edges = this._getEdges(node, containerRect);
           const power = this._getState(solar.entity);
           totalSolarPower += power;
           
           if (power > 0 || alwaysShow) {
             anySolarActive = true;
-            const startY = center.y + 40; // bottom edge of solar bubble
-            const endY = homeCenter.y - 50; // top edge of home bubble
+            const startY = edges.bottom; 
+            const endY = homeEdges.top;
             newPaths.push({
               id: `solar-${index}-path`,
               d: `M ${center.x} ${startY} L ${center.x} ${solarBusY} L ${homeCenter.x} ${solarBusY} L ${homeCenter.x} ${endY}`,
@@ -204,32 +162,96 @@ export class EmberWattCard extends LitElement {
       }
     }
 
-    // --- Battery Orthogonal Bus Routing ---
-    const virtualBatteries = this._virtualBatteries;
-    if (virtualBatteries.length > 0) {
+    // --- Battery Hierarchical Orthogonal Bus Routing ---
+    if (this._config.battery_entities && this._config.battery_entities.length > 0) {
       const batteryColor = this._config.colors?.battery || '#2ecc71';
       let anyBatteryActive = false;
 
-      const batteryNodes = Array.from(this.shadowRoot?.querySelectorAll('.node.battery') || []);
-      const batteryCenters = batteryNodes.map(n => this._getCenter(n as HTMLElement, containerRect));
-      const minBatteryY = batteryCenters.length > 0 ? Math.min(...batteryCenters.map(c => c.y)) : homeCenter.y + 120;
-      const batteryBusY = Math.max(minBatteryY - 60, homeCenter.y + 60);
+      // Find global battery busY (above all battery groups and nodes)
+      const batteryContainers = Array.from(this.shadowRoot?.querySelectorAll('.battery-group, .node.battery.ungrouped') || []);
+      const containerEdges = batteryContainers.map(n => this._getEdges(n as HTMLElement, containerRect));
+      const minBatteryY = containerEdges.length > 0 ? Math.min(...containerEdges.map(e => e.top)) : homeEdges.bottom + 80;
+      const globalBatteryBusY = Math.max(minBatteryY - 40, homeEdges.bottom + 40);
 
-      virtualBatteries.forEach((vBatt, index) => {
-        const node = this.shadowRoot?.querySelector(`#${vBatt.id}`) as HTMLElement;
+      // Group rendering data mapped by original index
+      const groupedEntities: { [group: string]: number[] } = {};
+      const ungroupedIndices: number[] = [];
+      this._config.battery_entities.forEach((battery, index) => {
+        if (battery.group && battery.group.trim() !== '') {
+          const g = battery.group.trim();
+          if (!groupedEntities[g]) groupedEntities[g] = [];
+          groupedEntities[g].push(index);
+        } else {
+          ungroupedIndices.push(index);
+        }
+      });
+
+      // Render grouped paths
+      Object.keys(groupedEntities).forEach((groupName, gIdx) => {
+        const groupEl = this.shadowRoot?.querySelector(`#battery-group-${gIdx}`) as HTMLElement;
+        if (!groupEl) return;
+        
+        const groupRect = this._getEdges(groupEl, containerRect);
+        const groupCenter = this._getCenter(groupEl, containerRect);
+        
+        // Internal busbar for the group (just below the title)
+        const groupBusY = groupRect.top + 16;
+        
+        let groupActive = false;
+
+        groupedEntities[groupName].forEach((index) => {
+          const battery = this._config.battery_entities![index];
+          const node = this.shadowRoot?.querySelector(`#battery-${index}`) as HTMLElement;
+          if (node) {
+            const center = this._getCenter(node, containerRect);
+            const edges = this._getEdges(node, containerRect);
+            let power = this._getState(battery.entity_power);
+            if (battery.invert_power) power = -power;
+            
+            if (Math.abs(power) > 0 || alwaysShow) {
+              groupActive = true;
+              anyBatteryActive = true;
+              const startY = edges.top;
+              const endY = homeEdges.bottom;
+              
+              // Hierarchical path: Node -> GroupBus -> GroupCenter -> GlobalBus -> Home
+              newPaths.push({
+                id: `battery-${index}-path`,
+                d: `M ${center.x} ${startY} L ${center.x} ${groupBusY} L ${groupCenter.x} ${groupBusY} L ${groupCenter.x} ${globalBatteryBusY} L ${homeCenter.x} ${globalBatteryBusY} L ${homeCenter.x} ${endY}`,
+                power: Math.abs(power),
+                color: battery.color || batteryColor,
+                reverse: false
+              });
+              newPaths[newPaths.length - 1].reverse = power > 0;
+            }
+          }
+        });
+
+        if (groupActive || alwaysShow) {
+          newJunctions.push({ id: `battery-junc-group-${gIdx}`, x: groupCenter.x, y: groupBusY, color: batteryColor });
+          newJunctions.push({ id: `battery-junc-global-${gIdx}`, x: groupCenter.x, y: globalBatteryBusY, color: batteryColor });
+        }
+      });
+
+      // Render ungrouped paths
+      ungroupedIndices.forEach(index => {
+        const battery = this._config.battery_entities![index];
+        const node = this.shadowRoot?.querySelector(`#battery-${index}`) as HTMLElement;
         if (node) {
           const center = this._getCenter(node, containerRect);
-          const power = vBatt.power;
+          const edges = this._getEdges(node, containerRect);
+          let power = this._getState(battery.entity_power);
+          if (battery.invert_power) power = -power;
           
           if (Math.abs(power) > 0 || alwaysShow) {
             anyBatteryActive = true;
-            const startY = center.y - 45; // top edge of battery bubble (approx 95/2 = 47.5, so 45 is safe)
-            const endY = homeCenter.y + 50; // bottom edge of home bubble
+            const startY = edges.top;
+            const endY = homeEdges.bottom;
             newPaths.push({
-              id: `${vBatt.id}-path`,
-              d: `M ${center.x} ${startY} L ${center.x} ${batteryBusY} L ${homeCenter.x} ${batteryBusY} L ${homeCenter.x} ${endY}`,
+              id: `battery-${index}-path`,
+              d: `M ${center.x} ${startY} L ${center.x} ${globalBatteryBusY} L ${homeCenter.x} ${globalBatteryBusY} L ${homeCenter.x} ${endY}`,
               power: Math.abs(power),
-              color: vBatt.color || batteryColor,
+              color: battery.color || batteryColor,
               reverse: false
             });
             newPaths[newPaths.length - 1].reverse = power > 0;
@@ -238,7 +260,7 @@ export class EmberWattCard extends LitElement {
       });
 
       if (anyBatteryActive || alwaysShow) {
-        newJunctions.push({ id: 'battery-junc', x: homeCenter.x, y: batteryBusY, color: batteryColor });
+        newJunctions.push({ id: 'battery-junc-main', x: homeCenter.x, y: globalBatteryBusY, color: batteryColor });
       }
     }
 
@@ -305,9 +327,10 @@ export class EmberWattCard extends LitElement {
     });
 
     let totalBatteryPower = 0;
-    const virtualBatteries = this._virtualBatteries;
-    virtualBatteries.forEach(vBatt => {
-      totalBatteryPower += vBatt.power;
+    this._config.battery_entities?.forEach(battery => {
+      let power = this._getState(battery.entity_power);
+      if (battery.invert_power) power = -power;
+      totalBatteryPower += power;
     });
 
     // Auto calculate home power if entity is not provided
@@ -325,6 +348,43 @@ export class EmberWattCard extends LitElement {
       autarky = Math.max(0, ((homePower - gridImport) / homePower) * 100);
       if (autarky > 100) autarky = 100;
     }
+
+    // Prepare battery groupings for rendering
+    const groupedEntities: { [group: string]: number[] } = {};
+    const ungroupedIndices: number[] = [];
+    (this._config.battery_entities || []).forEach((battery, index) => {
+      if (battery.group && battery.group.trim() !== '') {
+        const g = battery.group.trim();
+        if (!groupedEntities[g]) groupedEntities[g] = [];
+        groupedEntities[g].push(index);
+      } else {
+        ungroupedIndices.push(index);
+      }
+    });
+
+    const renderBatteryNode = (battery: any, index: number, isUngrouped: boolean) => {
+      let power = this._getState(battery.entity_power);
+      if (battery.invert_power) power = -power;
+      
+      const isCharging = power > 0;
+      const isDischarging = power < 0;
+      let icon = 'mdi:battery';
+      if (isCharging) icon = 'mdi:battery-charging';
+      if (isDischarging) icon = 'mdi:battery-minus';
+
+      return html`
+        <div id="battery-${index}" class="node battery ${isUngrouped ? 'ungrouped' : ''}" style="--color-battery: ${battery.color || this._config.colors?.battery || '#2ecc71'}">
+          <ha-icon class="icon" icon="${icon}"></ha-icon>
+          <div class="value">
+            ${isCharging ? html`<ha-icon icon="mdi:arrow-down" style="width: 14px; height: 14px; margin-right: 2px; color: var(--color-battery)"></ha-icon>` : ''}
+            ${isDischarging ? html`<ha-icon icon="mdi:arrow-up" style="width: 14px; height: 14px; margin-right: 2px; color: var(--color-solar)"></ha-icon>` : ''}
+            ${this._formatPower(Math.abs(power))} W
+          </div>
+          <div class="soc">${Math.round(this._getState(battery.entity_soc))}%</div>
+          <div class="name" title="${battery.name}">${battery.name || 'Batterie'}</div>
+        </div>
+      `;
+    };
 
     return html`
       <ha-card>
@@ -348,7 +408,7 @@ export class EmberWattCard extends LitElement {
                 <div id="solar-${index}" class="node solar" style="--color-solar: ${solar.color || this._config.colors?.solar || '#f1c40f'}">
                   <ha-icon class="icon" icon="mdi:solar-panel"></ha-icon>
                   <div class="value">${this._formatPower(this._getState(solar.entity))} W</div>
-                  <div class="name">${solar.name || 'Solar'}</div>
+                  <div class="name" title="${solar.name}">${solar.name || 'Solar'}</div>
                 </div>
               `)}
             </div>
@@ -364,25 +424,16 @@ export class EmberWattCard extends LitElement {
 
             <!-- Battery (Bottom) -->
             <div class="node-section battery-section">
-              ${virtualBatteries.map((vBatt) => {
-                const isCharging = vBatt.power > 0;
-                const isDischarging = vBatt.power < 0;
-                let icon = 'mdi:battery';
-                if (isCharging) icon = 'mdi:battery-charging';
-                if (isDischarging) icon = 'mdi:battery-minus';
-
-                return html`
-                <div id="${vBatt.id}" class="node battery" style="--color-battery: ${vBatt.color || this._config.colors?.battery || '#2ecc71'}">
-                  <ha-icon class="icon" icon="${icon}"></ha-icon>
-                  <div class="value">
-                    ${isCharging ? html`<ha-icon icon="mdi:arrow-down" style="width: 14px; height: 14px; margin-right: 2px; color: var(--color-battery)"></ha-icon>` : ''}
-                    ${isDischarging ? html`<ha-icon icon="mdi:arrow-up" style="width: 14px; height: 14px; margin-right: 2px; color: var(--color-solar)"></ha-icon>` : ''}
-                    ${this._formatPower(Math.abs(vBatt.power))} W
+              ${Object.keys(groupedEntities).map((groupName, gIdx) => html`
+                <div class="battery-group" id="battery-group-${gIdx}" style="--color-battery: ${this._config.colors?.battery || '#2ecc71'}">
+                  <div class="battery-group-title">${groupName}</div>
+                  <div class="battery-group-content">
+                    ${groupedEntities[groupName].map(index => renderBatteryNode(this._config.battery_entities![index], index, false))}
                   </div>
-                  <div class="soc">${Math.round(vBatt.soc)}%</div>
-                  <div class="name" title="${vBatt.name}">${vBatt.name}</div>
                 </div>
-              `})}
+              `)}
+              
+              ${ungroupedIndices.map(index => renderBatteryNode(this._config.battery_entities![index], index, true))}
             </div>
           </div>
         </div>
