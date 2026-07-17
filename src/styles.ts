@@ -80,12 +80,12 @@ export const styles = css`
   .battery-section {
     grid-column: 1 / span 3;
     grid-row: 3;
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: center;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 16px;
-    align-items: flex-start;
+    width: 100%;
+    justify-items: center;
+    align-items: start;
   }
 
   /* Battery Groups */

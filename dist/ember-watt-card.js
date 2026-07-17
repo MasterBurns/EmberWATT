@@ -646,12 +646,12 @@ var Te = o`
   .battery-section {
     grid-column: 1 / span 3;
     grid-row: 3;
-    display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: center;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 16px;
-    align-items: flex-start;
+    width: 100%;
+    justify-items: center;
+    align-items: start;
   }
 
   /* Battery Groups */
@@ -1007,7 +1007,7 @@ var Q = class extends J {
       </div>
       
       <div style="margin-top: 24px; font-size: 12px; color: var(--secondary-text-color); text-align: center;">
-        EmberWATT Card - v1.4.0
+        EmberWATT Card - v1.5.0
       </div>
     `;
 	}
@@ -1096,7 +1096,7 @@ var Q = class extends J {
 };
 //#endregion
 //#region src/ember-watt-card.ts
-Z([Y({ attribute: !1 })], Q.prototype, "hass", void 0), Z([X()], Q.prototype, "_config", void 0), Q = Z([ye("ember-watt-card-editor")], Q), console.info("%c EMBER-WATT-CARD %c v1.4.0 ", "color: orange; font-weight: bold; background: black", "color: white; font-weight: bold; background: dimgray");
+Z([Y({ attribute: !1 })], Q.prototype, "hass", void 0), Z([X()], Q.prototype, "_config", void 0), Q = Z([ye("ember-watt-card-editor")], Q), console.info("%c EMBER-WATT-CARD %c v1.5.0 ", "color: orange; font-weight: bold; background: black", "color: white; font-weight: bold; background: dimgray");
 var $ = class extends J {
 	constructor(...e) {
 		super(...e), this._paths = [], this._junctions = [];
