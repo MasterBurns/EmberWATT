@@ -5,6 +5,12 @@ import { EmberWattConfig } from './types';
 import { styles } from './styles';
 import './editor';
 
+console.info(
+  `%c EMBER-WATT-CARD %c v1.1.0 `,
+  'color: orange; font-weight: bold; background: black',
+  'color: white; font-weight: bold; background: dimgray'
+);
+
 @customElement('ember-watt-card')
 export class EmberWattCard extends LitElement {
   @property({ attribute: false }) public hass!: HomeAssistant;

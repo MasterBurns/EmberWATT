@@ -32,21 +32,20 @@ export const styles = css`
   .card-content {
     position: relative;
     width: 100%;
-    min-height: 300px;
     padding: 16px 0;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
   }
 
   .grid-container {
     display: grid;
     grid-template-columns: 1fr auto 1fr;
-    grid-template-rows: 1fr auto 1fr;
+    grid-template-rows: auto auto auto;
     width: 100%;
-    height: 100%;
-    gap: 16px;
+    height: auto;
+    gap: 32px;
     z-index: 2;
   }
 

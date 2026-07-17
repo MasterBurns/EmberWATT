@@ -227,6 +227,10 @@ export class EmberWattCardEditor extends LitElement {
         `)}
         <button class="primary-button" @click=${() => this._addArrayItem('battery_entities')}>+ Batterie hinzufügen</button>
       </div>
+      
+      <div style="margin-top: 24px; font-size: 12px; color: var(--secondary-text-color); text-align: center;">
+        EmberWATT Card - v1.1.0
+      </div>
     `;
   }
 

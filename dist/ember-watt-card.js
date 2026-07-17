@@ -598,21 +598,20 @@ var Te = o`
   .card-content {
     position: relative;
     width: 100%;
-    min-height: 300px;
     padding: 16px 0;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
   }
 
   .grid-container {
     display: grid;
     grid-template-columns: 1fr auto 1fr;
-    grid-template-rows: 1fr auto 1fr;
+    grid-template-rows: auto auto auto;
     width: 100%;
-    height: 100%;
-    gap: 16px;
+    height: auto;
+    gap: 32px;
     z-index: 2;
   }
 
@@ -1006,6 +1005,10 @@ var Q = class extends J {
         `)}
         <button class="primary-button" @click=${() => this._addArrayItem("battery_entities")}>+ Batterie hinzufügen</button>
       </div>
+      
+      <div style="margin-top: 24px; font-size: 12px; color: var(--secondary-text-color); text-align: center;">
+        EmberWATT Card - v1.1.0
+      </div>
     `;
 	}
 	static get styles() {
@@ -1091,9 +1094,9 @@ var Q = class extends J {
     `;
 	}
 };
-Z([Y({ attribute: !1 })], Q.prototype, "hass", void 0), Z([X()], Q.prototype, "_config", void 0), Q = Z([ye("ember-watt-card-editor")], Q);
 //#endregion
 //#region src/ember-watt-card.ts
+Z([Y({ attribute: !1 })], Q.prototype, "hass", void 0), Z([X()], Q.prototype, "_config", void 0), Q = Z([ye("ember-watt-card-editor")], Q), console.info("%c EMBER-WATT-CARD %c v1.1.0 ", "color: orange; font-weight: bold; background: black", "color: white; font-weight: bold; background: dimgray");
 var $ = class extends J {
 	constructor(...e) {
 		super(...e), this._paths = [], this._junctions = [];
