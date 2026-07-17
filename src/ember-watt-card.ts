@@ -162,6 +162,10 @@ export class EmberWattCard extends LitElement {
     return isNaN(state) ? 0 : state;
   }
 
+  private _formatPower(power: number): string {
+    return Math.round(power).toString();
+  }
+
   private _renderSVG() {
     return svg`
       <svg class="flow-container">
@@ -214,7 +218,7 @@ export class EmberWattCard extends LitElement {
             <div class="node-section grid-section">
               <div class="node grid" style="--color-grid: ${this._config.colors?.grid || '#3498db'}">
                 <ha-icon class="icon" icon="mdi:transmission-tower"></ha-icon>
-                <div class="value">${Math.abs(gridImport - this._getState(this._config.grid_export_entity))} W</div>
+                <div class="value">${this._formatPower(Math.abs(gridImport - this._getState(this._config.grid_export_entity)))} W</div>
                 <div class="name">Netz</div>
               </div>
             </div>
@@ -224,7 +228,7 @@ export class EmberWattCard extends LitElement {
               ${this._config.solar_entities?.map((solar, index) => html`
                 <div id="solar-${index}" class="node solar" style="--color-solar: ${solar.color || this._config.colors?.solar || '#f1c40f'}">
                   <ha-icon class="icon" icon="mdi:solar-panel"></ha-icon>
-                  <div class="value">${this._getState(solar.entity)} W</div>
+                  <div class="value">${this._formatPower(this._getState(solar.entity))} W</div>
                   <div class="name">${solar.name || 'Solar'}</div>
                 </div>
               `)}
@@ -234,7 +238,7 @@ export class EmberWattCard extends LitElement {
             <div class="node-section home-section">
               <div class="node home" style="--color-home: ${this._config.colors?.home || '#9b59b6'}">
                 <ha-icon class="icon" icon="mdi:home"></ha-icon>
-                <div class="value">${homePower} W</div>
+                <div class="value">${this._formatPower(homePower)} W</div>
                 <div class="name">Verbrauch</div>
               </div>
             </div>
@@ -247,8 +251,8 @@ export class EmberWattCard extends LitElement {
                 return html`
                 <div id="battery-${index}" class="node battery" style="--color-battery: ${battery.color || this._config.colors?.battery || '#2ecc71'}">
                   <ha-icon class="icon" icon="mdi:battery"></ha-icon>
-                  <div class="value">${Math.abs(power)} W</div>
-                  <div class="soc">${this._getState(battery.entity_soc)}%</div>
+                  <div class="value">${this._formatPower(Math.abs(power))} W</div>
+                  <div class="soc">${Math.round(this._getState(battery.entity_soc))}%</div>
                   <div class="name">${battery.name || 'Batterie'}</div>
                 </div>
               `})}

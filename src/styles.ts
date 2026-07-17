@@ -58,13 +58,13 @@ export const styles = css`
   }
 
   .solar-section {
-    grid-column: 2;
+    grid-column: 1 / span 3;
     grid-row: 1;
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 12px;
+    gap: 16px;
   }
 
   .grid-section {
@@ -78,13 +78,13 @@ export const styles = css`
   }
 
   .battery-section {
-    grid-column: 2;
+    grid-column: 1 / span 3;
     grid-row: 3;
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 12px;
+    gap: 16px;
   }
 
   /* Individual Node */

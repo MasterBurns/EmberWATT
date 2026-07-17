@@ -624,13 +624,13 @@ var Te = o`
   }
 
   .solar-section {
-    grid-column: 2;
+    grid-column: 1 / span 3;
     grid-row: 1;
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 12px;
+    gap: 16px;
   }
 
   .grid-section {
@@ -644,13 +644,13 @@ var Te = o`
   }
 
   .battery-section {
-    grid-column: 2;
+    grid-column: 1 / span 3;
     grid-row: 3;
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 12px;
+    gap: 16px;
   }
 
   /* Individual Node */
@@ -1037,6 +1037,9 @@ var $ = class extends q {
 		let t = parseFloat(this.hass.states[e].state);
 		return isNaN(t) ? 0 : t;
 	}
+	_formatPower(e) {
+		return Math.round(e).toString();
+	}
 	_renderSVG() {
 		return I`
       <svg class="flow-container">
@@ -1074,7 +1077,7 @@ var $ = class extends q {
             <div class="node-section grid-section">
               <div class="node grid" style="--color-grid: ${this._config.colors?.grid || "#3498db"}">
                 <ha-icon class="icon" icon="mdi:transmission-tower"></ha-icon>
-                <div class="value">${Math.abs(t - this._getState(this._config.grid_export_entity))} W</div>
+                <div class="value">${this._formatPower(Math.abs(t - this._getState(this._config.grid_export_entity)))} W</div>
                 <div class="name">Netz</div>
               </div>
             </div>
@@ -1084,7 +1087,7 @@ var $ = class extends q {
               ${this._config.solar_entities?.map((e, t) => F`
                 <div id="solar-${t}" class="node solar" style="--color-solar: ${e.color || this._config.colors?.solar || "#f1c40f"}">
                   <ha-icon class="icon" icon="mdi:solar-panel"></ha-icon>
-                  <div class="value">${this._getState(e.entity)} W</div>
+                  <div class="value">${this._formatPower(this._getState(e.entity))} W</div>
                   <div class="name">${e.name || "Solar"}</div>
                 </div>
               `)}
@@ -1094,7 +1097,7 @@ var $ = class extends q {
             <div class="node-section home-section">
               <div class="node home" style="--color-home: ${this._config.colors?.home || "#9b59b6"}">
                 <ha-icon class="icon" icon="mdi:home"></ha-icon>
-                <div class="value">${e} W</div>
+                <div class="value">${this._formatPower(e)} W</div>
                 <div class="name">Verbrauch</div>
               </div>
             </div>
@@ -1106,8 +1109,8 @@ var $ = class extends q {
 			return e.invert_power && (n = -n), F`
                 <div id="battery-${t}" class="node battery" style="--color-battery: ${e.color || this._config.colors?.battery || "#2ecc71"}">
                   <ha-icon class="icon" icon="mdi:battery"></ha-icon>
-                  <div class="value">${Math.abs(n)} W</div>
-                  <div class="soc">${this._getState(e.entity_soc)}%</div>
+                  <div class="value">${this._formatPower(Math.abs(n))} W</div>
+                  <div class="soc">${Math.round(this._getState(e.entity_soc))}%</div>
                   <div class="name">${e.name || "Batterie"}</div>
                 </div>
               `;
