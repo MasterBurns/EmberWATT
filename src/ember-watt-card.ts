@@ -6,7 +6,7 @@ import { styles } from './styles';
 import './editor';
 
 console.info(
-  `%c EMBER-WATT-CARD %c v1.1.0 `,
+  `%c EMBER-WATT-CARD %c v1.2.0 `,
   'color: orange; font-weight: bold; background: black',
   'color: white; font-weight: bold; background: dimgray'
 );
@@ -127,34 +127,32 @@ export class EmberWattCard extends LitElement {
       });
     }
 
-    // --- Solar Orthogonal Bus Routing ---
+    // --- Solar Central Spine Routing ---
     if (this._config.solar_entities && this._config.solar_entities.length > 0) {
       const solarColor = this._config.colors?.solar || '#f1c40f';
-      let anySolarActive = false;
-      let totalSolarPower = 0;
       
-      const solarNodes = Array.from(this.shadowRoot?.querySelectorAll('.node.solar') || []);
-      const solarEdges = solarNodes.map(n => this._getEdges(n as HTMLElement, containerRect));
-      // Busbar should be below all solar nodes
-      const maxSolarY = solarEdges.length > 0 ? Math.max(...solarEdges.map(e => e.bottom)) : homeEdges.top - 80;
-      // Between lowest solar node and home node
-      const solarBusY = Math.min(maxSolarY + 40, homeEdges.top - 40);
-
       this._config.solar_entities.forEach((solar, index) => {
         const node = this.shadowRoot?.querySelector(`#solar-${index}`) as HTMLElement;
         if (node) {
           const center = this._getCenter(node, containerRect);
           const edges = this._getEdges(node, containerRect);
           const power = this._getState(solar.entity);
-          totalSolarPower += power;
           
           if (power > 0 || alwaysShow) {
-            anySolarActive = true;
-            const startY = edges.bottom; 
-            const endY = homeEdges.top;
+            const isCenter = Math.abs(center.x - homeCenter.x) < 20;
+            let d = '';
+            
+            if (isCenter) {
+              d = `M ${center.x} ${edges.bottom} L ${homeCenter.x} ${homeEdges.top}`;
+            } else {
+              const startX = center.x < homeCenter.x ? edges.right : edges.left;
+              d = `M ${startX} ${center.y} L ${homeCenter.x} ${center.y} L ${homeCenter.x} ${homeEdges.top}`;
+              newJunctions.push({ id: `solar-junc-${index}`, x: homeCenter.x, y: center.y, color: solarColor });
+            }
+
             newPaths.push({
               id: `solar-${index}-path`,
-              d: `M ${center.x} ${startY} L ${center.x} ${solarBusY} L ${homeCenter.x} ${solarBusY} L ${homeCenter.x} ${endY}`,
+              d: d,
               power: power,
               color: solar.color || solarColor,
               reverse: false
@@ -162,22 +160,11 @@ export class EmberWattCard extends LitElement {
           }
         }
       });
-      
-      if (anySolarActive || alwaysShow) {
-        newJunctions.push({ id: 'solar-junc', x: homeCenter.x, y: solarBusY, color: solarColor });
-      }
     }
 
-    // --- Battery Hierarchical Orthogonal Bus Routing ---
+    // --- Battery Central Spine Routing ---
     if (this._config.battery_entities && this._config.battery_entities.length > 0) {
       const batteryColor = this._config.colors?.battery || '#2ecc71';
-      let anyBatteryActive = false;
-
-      // Find global battery busY (above all battery groups and nodes)
-      const batteryContainers = Array.from(this.shadowRoot?.querySelectorAll('.battery-group, .node.battery.ungrouped') || []);
-      const containerEdges = batteryContainers.map(n => this._getEdges(n as HTMLElement, containerRect));
-      const minBatteryY = containerEdges.length > 0 ? Math.min(...containerEdges.map(e => e.top)) : homeEdges.bottom + 80;
-      const globalBatteryBusY = Math.max(minBatteryY - 40, homeEdges.bottom + 40);
 
       // Group rendering data mapped by original index
       const groupedEntities: { [group: string]: number[] } = {};
@@ -200,10 +187,7 @@ export class EmberWattCard extends LitElement {
         const groupRect = this._getEdges(groupEl, containerRect);
         const groupCenter = this._getCenter(groupEl, containerRect);
         
-        // Internal vertical busbar for the group (on the right side)
-        const groupBusX = groupRect.right - 10;
-        const groupTopBusY = groupRect.top + 16;
-        
+        const groupTopBusY = groupRect.top + 28;
         let groupActive = false;
 
         groupedEntities[groupName].forEach((index) => {
@@ -217,27 +201,24 @@ export class EmberWattCard extends LitElement {
             
             if (Math.abs(power) > 0 || alwaysShow) {
               groupActive = true;
-              anyBatteryActive = true;
-              const startX = edges.right;
-              const startY = center.y;
-              const endY = homeEdges.bottom;
               
-              // Hierarchical path: Node Right -> GroupBusX -> GroupTopBusY -> GroupCenterX -> GlobalBusY -> Home
+              // Internal vertical spine to groupTopBusY, then horizontal to main spine, then UP to home
+              const d = `M ${center.x} ${edges.top} L ${center.x} ${groupTopBusY} L ${homeCenter.x} ${groupTopBusY} L ${homeCenter.x} ${homeEdges.bottom}`;
+              
               newPaths.push({
                 id: `battery-${index}-path`,
-                d: `M ${startX} ${startY} L ${groupBusX} ${startY} L ${groupBusX} ${groupTopBusY} L ${groupCenter.x} ${groupTopBusY} L ${groupCenter.x} ${globalBatteryBusY} L ${homeCenter.x} ${globalBatteryBusY} L ${homeCenter.x} ${endY}`,
+                d: d,
                 power: Math.abs(power),
                 color: battery.color || batteryColor,
-                reverse: false
+                reverse: power > 0
               });
-              newPaths[newPaths.length - 1].reverse = power > 0;
             }
           }
         });
 
         if (groupActive || alwaysShow) {
-          newJunctions.push({ id: `battery-junc-group-top-${gIdx}`, x: groupCenter.x, y: groupTopBusY, color: batteryColor });
-          newJunctions.push({ id: `battery-junc-global-${gIdx}`, x: groupCenter.x, y: globalBatteryBusY, color: batteryColor });
+          newJunctions.push({ id: `battery-group-junc-${gIdx}`, x: homeCenter.x, y: groupTopBusY, color: batteryColor });
+          newJunctions.push({ id: `battery-group-internal-junc-${gIdx}`, x: groupCenter.x, y: groupTopBusY, color: batteryColor });
         }
       });
 
@@ -252,27 +233,27 @@ export class EmberWattCard extends LitElement {
           if (battery.invert_power) power = -power;
           
           if (Math.abs(power) > 0 || alwaysShow) {
-            anyBatteryActive = true;
-            const startX = edges.right;
-            const startY = center.y;
-            const endY = homeEdges.bottom;
-            const globalBusX = startX + 20; // vertical bus 20px to the right of node
+            const isCenter = Math.abs(center.x - homeCenter.x) < 20;
+            let d = '';
+            
+            if (isCenter) {
+              d = `M ${center.x} ${edges.top} L ${homeCenter.x} ${homeEdges.bottom}`;
+            } else {
+              const startX = center.x < homeCenter.x ? edges.right : edges.left;
+              d = `M ${startX} ${center.y} L ${homeCenter.x} ${center.y} L ${homeCenter.x} ${homeEdges.bottom}`;
+              newJunctions.push({ id: `battery-single-junc-${index}`, x: homeCenter.x, y: center.y, color: batteryColor });
+            }
 
             newPaths.push({
               id: `battery-${index}-path`,
-              d: `M ${startX} ${startY} L ${globalBusX} ${startY} L ${globalBusX} ${globalBatteryBusY} L ${homeCenter.x} ${globalBatteryBusY} L ${homeCenter.x} ${endY}`,
+              d: d,
               power: Math.abs(power),
               color: battery.color || batteryColor,
-              reverse: false
+              reverse: power > 0
             });
-            newPaths[newPaths.length - 1].reverse = power > 0;
           }
         }
       });
-
-      if (anyBatteryActive || alwaysShow) {
-        newJunctions.push({ id: 'battery-junc-main', x: homeCenter.x, y: globalBatteryBusY, color: batteryColor });
-      }
     }
 
     this._paths = newPaths;
