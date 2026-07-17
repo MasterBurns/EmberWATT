@@ -116,9 +116,8 @@ export const styles = css`
 
   .battery-group-content {
     display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: center;
+    flex-direction: column;
+    align-items: center;
     gap: 16px;
   }
 
@@ -131,7 +130,7 @@ export const styles = css`
     min-width: 90px;
     padding: 12px 16px;
     border-radius: 16px;
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--ember-bg-color);
     border: 2px solid transparent;
     z-index: 10;
     position: relative;

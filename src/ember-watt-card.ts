@@ -376,8 +376,8 @@ export class EmberWattCard extends LitElement {
         <div id="battery-${index}" class="node battery ${isUngrouped ? 'ungrouped' : ''}" style="--color-battery: ${battery.color || this._config.colors?.battery || '#2ecc71'}">
           <ha-icon class="icon" icon="${icon}"></ha-icon>
           <div class="value">
-            ${isCharging ? html`<ha-icon icon="mdi:arrow-down" style="width: 14px; height: 14px; margin-right: 2px; color: var(--color-battery)"></ha-icon>` : ''}
-            ${isDischarging ? html`<ha-icon icon="mdi:arrow-up" style="width: 14px; height: 14px; margin-right: 2px; color: var(--color-solar)"></ha-icon>` : ''}
+            ${isCharging ? html`<ha-icon icon="mdi:arrow-down" style="width: 14px; height: 14px; margin-right: 6px; color: var(--color-battery)"></ha-icon>` : ''}
+            ${isDischarging ? html`<ha-icon icon="mdi:arrow-up" style="width: 14px; height: 14px; margin-right: 6px; color: var(--color-solar)"></ha-icon>` : ''}
             ${this._formatPower(Math.abs(power))} W
           </div>
           <div class="soc">${Math.round(this._getState(battery.entity_soc))}%</div>

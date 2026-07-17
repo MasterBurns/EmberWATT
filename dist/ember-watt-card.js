@@ -682,9 +682,8 @@ var Te = o`
 
   .battery-group-content {
     display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: center;
+    flex-direction: column;
+    align-items: center;
     gap: 16px;
   }
 
@@ -697,7 +696,7 @@ var Te = o`
     min-width: 90px;
     padding: 12px 16px;
     border-radius: 16px;
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--ember-bg-color);
     border: 2px solid transparent;
     z-index: 10;
     position: relative;
@@ -1314,8 +1313,8 @@ var $ = class extends J {
         <div id="battery-${t}" class="node battery ${n ? "ungrouped" : ""}" style="--color-battery: ${e.color || this._config.colors?.battery || "#2ecc71"}">
           <ha-icon class="icon" icon="${o}"></ha-icon>
           <div class="value">
-            ${i ? I`<ha-icon icon="mdi:arrow-down" style="width: 14px; height: 14px; margin-right: 2px; color: var(--color-battery)"></ha-icon>` : ""}
-            ${a ? I`<ha-icon icon="mdi:arrow-up" style="width: 14px; height: 14px; margin-right: 2px; color: var(--color-solar)"></ha-icon>` : ""}
+            ${i ? I`<ha-icon icon="mdi:arrow-down" style="width: 14px; height: 14px; margin-right: 6px; color: var(--color-battery)"></ha-icon>` : ""}
+            ${a ? I`<ha-icon icon="mdi:arrow-up" style="width: 14px; height: 14px; margin-right: 6px; color: var(--color-solar)"></ha-icon>` : ""}
             ${this._formatPower(Math.abs(r))} W
           </div>
           <div class="soc">${Math.round(this._getState(e.entity_soc))}%</div>
