@@ -1007,7 +1007,7 @@ var Q = class extends J {
       </div>
       
       <div style="margin-top: 24px; font-size: 12px; color: var(--secondary-text-color); text-align: center;">
-        EmberWATT Card - v1.3.0
+        EmberWATT Card - v1.4.0
       </div>
     `;
 	}
@@ -1096,7 +1096,7 @@ var Q = class extends J {
 };
 //#endregion
 //#region src/ember-watt-card.ts
-Z([Y({ attribute: !1 })], Q.prototype, "hass", void 0), Z([X()], Q.prototype, "_config", void 0), Q = Z([ye("ember-watt-card-editor")], Q), console.info("%c EMBER-WATT-CARD %c v1.3.0 ", "color: orange; font-weight: bold; background: black", "color: white; font-weight: bold; background: dimgray");
+Z([Y({ attribute: !1 })], Q.prototype, "hass", void 0), Z([X()], Q.prototype, "_config", void 0), Q = Z([ye("ember-watt-card-editor")], Q), console.info("%c EMBER-WATT-CARD %c v1.4.0 ", "color: orange; font-weight: bold; background: black", "color: white; font-weight: bold; background: dimgray");
 var $ = class extends J {
 	constructor(...e) {
 		super(...e), this._paths = [], this._junctions = [];
@@ -1164,27 +1164,32 @@ var $ = class extends J {
 			});
 		}
 		if (this._config.solar_entities && this._config.solar_entities.length > 0) {
-			let e = this._config.colors?.solar || "#f1c40f";
-			this._config.solar_entities.forEach((n, r) => {
-				let o = this.shadowRoot?.querySelector(`#solar-${r}`);
-				if (o) {
-					let s = this._getCenter(o, t), d = this._getEdges(o, t), f = this._getState(n.entity);
-					if (f > 0 || u) {
-						let t = Math.abs(s.x - i.x) < 20, o = "";
-						t ? o = `M ${s.x} ${d.bottom} L ${i.x} ${a.top}` : (o = `M ${s.x < i.x ? d.right : d.left} ${s.y} L ${i.x} ${s.y} L ${i.x} ${a.top}`, l.push({
-							id: `solar-junc-${r}`,
-							x: i.x,
-							y: s.y,
-							color: e
-						})), c.push({
-							id: `solar-${r}-path`,
-							d: o,
-							power: f,
-							color: n.color || e,
+			let e = this._config.colors?.solar || "#f1c40f", n = a.top - 20;
+			this._config.solar_entities.forEach((r, o) => {
+				let s = this.shadowRoot?.querySelector(`#solar-${o}`);
+				if (s) {
+					let d = this._getCenter(s, t), f = this._getEdges(s, t), p = this._getState(r.entity);
+					if (p > 0 || u) {
+						let t = `M ${d.x} ${f.bottom} L ${d.x} ${n} L ${i.x} ${n} L ${i.x} ${a.top}`;
+						c.push({
+							id: `solar-${o}-path`,
+							d: t,
+							power: p,
+							color: r.color || e,
 							reverse: !1
+						}), l.push({
+							id: `solar-junc-${o}`,
+							x: d.x,
+							y: n,
+							color: e
 						});
 					}
 				}
+			}), l.push({
+				id: "solar-junc-main",
+				x: i.x,
+				y: n,
+				color: e
 			});
 		}
 		if (this._config.battery_entities && this._config.battery_entities.length > 0) {
@@ -1197,7 +1202,7 @@ var $ = class extends J {
 			}), Object.keys(n).forEach((r, o) => {
 				let s = this.shadowRoot?.querySelector(`#battery-group-${o}`);
 				if (!s) return;
-				let d = this._getEdges(s, t), f = this._getCenter(s, t), p = d.top + 28, m = f.x < i.x, h = m ? d.right - 16 : d.left + 16, g = !1;
+				let d = this._getEdges(s, t), f = this._getCenter(s, t), p = f.y, m = f.x < i.x, h = m ? d.right - 16 : d.left + 16, g = !1;
 				n[r].forEach((n) => {
 					let r = this._config.battery_entities[n], o = this.shadowRoot?.querySelector(`#battery-${n}`);
 					if (o) {

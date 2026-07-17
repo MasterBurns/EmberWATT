@@ -6,7 +6,7 @@ import { styles } from './styles';
 import './editor';
 
 console.info(
-  `%c EMBER-WATT-CARD %c v1.3.0 `,
+  `%c EMBER-WATT-CARD %c v1.4.0 `,
   'color: orange; font-weight: bold; background: black',
   'color: white; font-weight: bold; background: dimgray'
 );
@@ -130,6 +130,7 @@ export class EmberWattCard extends LitElement {
     // --- Solar Central Spine Routing ---
     if (this._config.solar_entities && this._config.solar_entities.length > 0) {
       const solarColor = this._config.colors?.solar || '#f1c40f';
+      const solarBusY = homeEdges.top - 20;
       
       this._config.solar_entities.forEach((solar, index) => {
         const node = this.shadowRoot?.querySelector(`#solar-${index}`) as HTMLElement;
@@ -139,16 +140,8 @@ export class EmberWattCard extends LitElement {
           const power = this._getState(solar.entity);
           
           if (power > 0 || alwaysShow) {
-            const isCenter = Math.abs(center.x - homeCenter.x) < 20;
-            let d = '';
-            
-            if (isCenter) {
-              d = `M ${center.x} ${edges.bottom} L ${homeCenter.x} ${homeEdges.top}`;
-            } else {
-              const startX = center.x < homeCenter.x ? edges.right : edges.left;
-              d = `M ${startX} ${center.y} L ${homeCenter.x} ${center.y} L ${homeCenter.x} ${homeEdges.top}`;
-              newJunctions.push({ id: `solar-junc-${index}`, x: homeCenter.x, y: center.y, color: solarColor });
-            }
+            // Exit bottom, go down to solarBusY, then horizontal to spine, then down to homeEdges.top
+            const d = `M ${center.x} ${edges.bottom} L ${center.x} ${solarBusY} L ${homeCenter.x} ${solarBusY} L ${homeCenter.x} ${homeEdges.top}`;
 
             newPaths.push({
               id: `solar-${index}-path`,
@@ -157,9 +150,12 @@ export class EmberWattCard extends LitElement {
               color: solar.color || solarColor,
               reverse: false
             });
+            newJunctions.push({ id: `solar-junc-${index}`, x: center.x, y: solarBusY, color: solarColor });
           }
         }
       });
+      // Add central junction dot
+      newJunctions.push({ id: `solar-junc-main`, x: homeCenter.x, y: solarBusY, color: solarColor });
     }
 
     // --- Battery Central Spine Routing ---
@@ -187,7 +183,7 @@ export class EmberWattCard extends LitElement {
         const groupRect = this._getEdges(groupEl, containerRect);
         const groupCenter = this._getCenter(groupEl, containerRect);
         
-        const groupTopBusY = groupRect.top + 28;
+        const groupConnectionY = groupCenter.y; // Connect from middle of group
         const isGroupLeft = groupCenter.x < homeCenter.x;
         const groupBusX = isGroupLeft ? groupRect.right - 16 : groupRect.left + 16;
         let groupActive = false;
@@ -207,7 +203,8 @@ export class EmberWattCard extends LitElement {
               const startX = isGroupLeft ? edges.right : edges.left;
               const startY = center.y;
               
-              const d = `M ${startX} ${startY} L ${groupBusX} ${startY} L ${groupBusX} ${groupTopBusY} L ${homeCenter.x} ${groupTopBusY} L ${homeCenter.x} ${homeEdges.bottom}`;
+              // Node Side -> Internal Spine -> Middle of Group -> Main Spine -> Home
+              const d = `M ${startX} ${startY} L ${groupBusX} ${startY} L ${groupBusX} ${groupConnectionY} L ${homeCenter.x} ${groupConnectionY} L ${homeCenter.x} ${homeEdges.bottom}`;
               
               newPaths.push({
                 id: `battery-${index}-path`,
@@ -223,8 +220,8 @@ export class EmberWattCard extends LitElement {
         });
 
         if (groupActive || alwaysShow) {
-          newJunctions.push({ id: `battery-group-junc-turn-${gIdx}`, x: groupBusX, y: groupTopBusY, color: batteryColor });
-          newJunctions.push({ id: `battery-group-junc-spine-${gIdx}`, x: homeCenter.x, y: groupTopBusY, color: batteryColor });
+          newJunctions.push({ id: `battery-group-junc-turn-${gIdx}`, x: groupBusX, y: groupConnectionY, color: batteryColor });
+          newJunctions.push({ id: `battery-group-junc-spine-${gIdx}`, x: homeCenter.x, y: groupConnectionY, color: batteryColor });
         }
       });
 
