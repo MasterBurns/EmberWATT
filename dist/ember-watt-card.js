@@ -598,7 +598,8 @@ var Te = o`
   .card-content {
     position: relative;
     width: 100%;
-    min-height: 400px;
+    min-height: 500px;
+    padding: 30px 0;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -607,11 +608,11 @@ var Te = o`
 
   .grid-container {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    grid-template-rows: auto 1fr auto;
+    grid-template-columns: 1fr auto 1fr;
+    grid-template-rows: 1fr auto 1fr;
     width: 100%;
     height: 100%;
-    gap: 16px;
+    gap: 30px;
     z-index: 2;
   }
 
@@ -840,18 +841,22 @@ var Q = class extends q {
       <div class="card-config">
         <h3>Allgemein</h3>
         <div class="row">
-          <ha-textfield
-            label="Name (Verbrauch)"
-            .value=${this._config.name_home || ""}
-            .configValue=${"name_home"}
-            @input=${this._valueChanged}
-          ></ha-textfield>
-          <ha-textfield
-            label="Name (Netz)"
-            .value=${this._config.name_grid || ""}
-            .configValue=${"name_grid"}
-            @input=${this._valueChanged}
-          ></ha-textfield>
+          <label class="text-input-wrapper">
+            Name (Verbrauch):
+            <input type="text"
+              .value=${this._config.name_home || ""}
+              .configValue=${"name_home"}
+              @input=${this._valueChanged}
+            />
+          </label>
+          <label class="text-input-wrapper">
+            Name (Netz):
+            <input type="text"
+              .value=${this._config.name_grid || ""}
+              .configValue=${"name_grid"}
+              @input=${this._valueChanged}
+            />
+          </label>
         </div>
         <div class="row checkbox-row">
           <label>
@@ -904,11 +909,13 @@ var Q = class extends q {
               allow-custom-entity
               label="Solar Entität (W)"
             ></ha-entity-picker>
-            <ha-textfield
-              label="Name"
-              .value=${e.name || ""}
-              @input=${(e) => this._updateArrayValue("solar_entities", t, "name", e.target.value)}
-            ></ha-textfield>
+            <label class="text-input-wrapper">
+              Anzeigename:
+              <input type="text"
+                .value=${e.name || ""}
+                @input=${(e) => this._updateArrayValue("solar_entities", t, "name", e.target.value)}
+              />
+            </label>
             <button class="icon-button" @click=${() => this._removeArrayItem("solar_entities", t)}>
               Löschen
             </button>
@@ -933,11 +940,13 @@ var Q = class extends q {
               allow-custom-entity
               label="Ladezustand (%)"
             ></ha-entity-picker>
-            <ha-textfield
-              label="Name"
-              .value=${e.name || ""}
-              @input=${(e) => this._updateArrayValue("battery_entities", t, "name", e.target.value)}
-            ></ha-textfield>
+            <label class="text-input-wrapper">
+              Anzeigename:
+              <input type="text"
+                .value=${e.name || ""}
+                @input=${(e) => this._updateArrayValue("battery_entities", t, "name", e.target.value)}
+              />
+            </label>
             <label class="checkbox-row" style="margin-top: 8px;">
               <input 
                 type="checkbox" 
@@ -985,9 +994,25 @@ var Q = class extends q {
         display: flex;
         align-items: center;
         font-size: 0.9em;
+        cursor: pointer;
       }
       .checkbox-row input {
         margin-right: 8px;
+      }
+      .text-input-wrapper {
+        display: flex;
+        flex-direction: column;
+        font-size: 12px;
+        color: var(--secondary-text-color);
+      }
+      .text-input-wrapper input {
+        margin-top: 4px;
+        padding: 8px;
+        border: 1px solid var(--divider-color, rgba(255,255,255,0.1));
+        border-radius: 4px;
+        background: transparent;
+        color: var(--primary-text-color);
+        font-size: 14px;
       }
       .array-item {
         display: flex;
@@ -1072,25 +1097,33 @@ var $ = class extends q {
 		let t = e.getBoundingClientRect(), n = this.shadowRoot?.querySelector(".node.home"), r = this.shadowRoot?.querySelector(".node.grid");
 		if (!n || !r) return;
 		let i = this._getCenter(n, t), a = this._getCenter(r, t), o = [], s = [], c = this._config.always_show_paths !== !1, l = this._getState(this._config.grid_import_entity) - this._getState(this._config.grid_export_entity), u = this._config.colors?.grid || "#3498db";
-		if ((Math.abs(l) > 0 || c) && o.push({
-			id: "grid-home",
-			d: `M ${a.x} ${a.y} L ${i.x} ${i.y}`,
-			power: Math.abs(l),
-			color: u,
-			reverse: l < 0
-		}), this._config.solar_entities && this._config.solar_entities.length > 0) {
-			let e = i.y - 70, n = this._config.colors?.solar || "#f1c40f", r = !1, a = 0;
+		if (Math.abs(l) > 0 || c) {
+			let e = a.x + 40, t = i.x - 50;
+			o.push({
+				id: "grid-home",
+				d: `M ${e} ${a.y} L ${t} ${i.y}`,
+				power: Math.abs(l),
+				color: u,
+				reverse: l < 0
+			});
+		}
+		if (this._config.solar_entities && this._config.solar_entities.length > 0) {
+			let e = i.y - 90, n = this._config.colors?.solar || "#f1c40f", r = !1, a = 0;
 			this._config.solar_entities.forEach((s, l) => {
 				let u = this.shadowRoot?.querySelector(`#solar-${l}`);
 				if (u) {
 					let d = this._getCenter(u, t), f = this._getState(s.entity);
-					a += f, (f > 0 || c) && (r = !0, o.push({
-						id: `solar-${l}-path`,
-						d: `M ${d.x} ${d.y} L ${d.x} ${e} L ${i.x} ${e} L ${i.x} ${i.y}`,
-						power: f,
-						color: s.color || n,
-						reverse: !1
-					}));
+					if (a += f, f > 0 || c) {
+						r = !0;
+						let t = d.y + 40, a = i.y - 50;
+						o.push({
+							id: `solar-${l}-path`,
+							d: `M ${d.x} ${t} L ${d.x} ${e} L ${i.x} ${e} L ${i.x} ${a}`,
+							power: f,
+							color: s.color || n,
+							reverse: !1
+						});
+					}
 				}
 			}), (r || c) && s.push({
 				id: "solar-junc",
@@ -1100,18 +1133,22 @@ var $ = class extends q {
 			});
 		}
 		if (this._config.battery_entities && this._config.battery_entities.length > 0) {
-			let e = i.y + 70, n = this._config.colors?.battery || "#2ecc71", r = !1;
+			let e = i.y + 90, n = this._config.colors?.battery || "#2ecc71", r = !1;
 			this._config.battery_entities.forEach((a, s) => {
 				let l = this.shadowRoot?.querySelector(`#battery-${s}`);
 				if (l) {
 					let u = this._getCenter(l, t), d = this._getState(a.entity_power);
-					a.invert_power && (d = -d), (Math.abs(d) > 0 || c) && (r = !0, o.push({
-						id: `battery-${s}-path`,
-						d: `M ${u.x} ${u.y} L ${u.x} ${e} L ${i.x} ${e} L ${i.x} ${i.y}`,
-						power: Math.abs(d),
-						color: a.color || n,
-						reverse: d < 0
-					}), o[o.length - 1].reverse = d > 0);
+					if (a.invert_power && (d = -d), Math.abs(d) > 0 || c) {
+						r = !0;
+						let t = u.y - 40, c = i.y + 50;
+						o.push({
+							id: `battery-${s}-path`,
+							d: `M ${u.x} ${t} L ${u.x} ${e} L ${i.x} ${e} L ${i.x} ${c}`,
+							power: Math.abs(d),
+							color: a.color || n,
+							reverse: !1
+						}), o[o.length - 1].reverse = d > 0;
+					}
 				}
 			}), (r || c) && s.push({
 				id: "battery-junc",

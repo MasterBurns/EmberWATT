@@ -32,7 +32,8 @@ export const styles = css`
   .card-content {
     position: relative;
     width: 100%;
-    min-height: 400px;
+    min-height: 500px;
+    padding: 30px 0;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -41,11 +42,11 @@ export const styles = css`
 
   .grid-container {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    grid-template-rows: auto 1fr auto;
+    grid-template-columns: 1fr auto 1fr;
+    grid-template-rows: 1fr auto 1fr;
     width: 100%;
     height: 100%;
-    gap: 16px;
+    gap: 30px;
     z-index: 2;
   }
 

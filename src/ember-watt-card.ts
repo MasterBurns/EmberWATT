@@ -97,9 +97,11 @@ export class EmberWattCard extends LitElement {
     let gridColor = this._config.colors?.grid || '#3498db';
     
     if (Math.abs(gridPower) > 0 || alwaysShow) {
+      const startX = gridCenter.x + 40; // right edge of grid bubble
+      const endX = homeCenter.x - 50; // left edge of home bubble
       newPaths.push({
         id: 'grid-home',
-        d: `M ${gridCenter.x} ${gridCenter.y} L ${homeCenter.x} ${homeCenter.y}`,
+        d: `M ${startX} ${gridCenter.y} L ${endX} ${homeCenter.y}`,
         power: Math.abs(gridPower),
         color: gridColor,
         reverse: gridPower < 0
@@ -108,7 +110,7 @@ export class EmberWattCard extends LitElement {
 
     // --- Solar Orthogonal Bus Routing ---
     if (this._config.solar_entities && this._config.solar_entities.length > 0) {
-      const solarBusY = homeCenter.y - 70;
+      const solarBusY = homeCenter.y - 90;
       const solarColor = this._config.colors?.solar || '#f1c40f';
       let anySolarActive = false;
       let totalSolarPower = 0;
@@ -122,10 +124,11 @@ export class EmberWattCard extends LitElement {
           
           if (power > 0 || alwaysShow) {
             anySolarActive = true;
-            // Orthogonal path: Node -> down to Bus -> across to Center -> down to Home
+            const startY = center.y + 40; // bottom edge of solar bubble
+            const endY = homeCenter.y - 50; // top edge of home bubble
             newPaths.push({
               id: `solar-${index}-path`,
-              d: `M ${center.x} ${center.y} L ${center.x} ${solarBusY} L ${homeCenter.x} ${solarBusY} L ${homeCenter.x} ${homeCenter.y}`,
+              d: `M ${center.x} ${startY} L ${center.x} ${solarBusY} L ${homeCenter.x} ${solarBusY} L ${homeCenter.x} ${endY}`,
               power: power,
               color: solar.color || solarColor,
               reverse: false
@@ -141,7 +144,7 @@ export class EmberWattCard extends LitElement {
 
     // --- Battery Orthogonal Bus Routing ---
     if (this._config.battery_entities && this._config.battery_entities.length > 0) {
-      const batteryBusY = homeCenter.y + 70;
+      const batteryBusY = homeCenter.y + 90;
       const batteryColor = this._config.colors?.battery || '#2ecc71';
       let anyBatteryActive = false;
 
@@ -150,30 +153,19 @@ export class EmberWattCard extends LitElement {
         if (node) {
           const center = this._getCenter(node, containerRect);
           let power = this._getState(battery.entity_power);
-          if (battery.invert_power) power = -power; // Invert logic configured by user
+          if (battery.invert_power) power = -power;
           
           if (Math.abs(power) > 0 || alwaysShow) {
             anyBatteryActive = true;
-            // Orthogonal path: Battery -> up to Bus -> across to Center -> up to Home
-            // Note: because the dot flows from battery to home on discharge,
-            // the drawn path starts at battery. 
-            // If charging (Home to Battery), reverse is true, and dot travels backwards.
+            const startY = center.y - 40; // top edge of battery bubble
+            const endY = homeCenter.y + 50; // bottom edge of home bubble
             newPaths.push({
               id: `battery-${index}-path`,
-              d: `M ${center.x} ${center.y} L ${center.x} ${batteryBusY} L ${homeCenter.x} ${batteryBusY} L ${homeCenter.x} ${homeCenter.y}`,
+              d: `M ${center.x} ${startY} L ${center.x} ${batteryBusY} L ${homeCenter.x} ${batteryBusY} L ${homeCenter.x} ${endY}`,
               power: Math.abs(power),
               color: battery.color || batteryColor,
-              reverse: power < 0 // power < 0 means discharging (Battery -> Home). Oh wait.
-              // If power < 0 (discharging), dot should flow FROM battery TO home.
-              // The path starts at battery (M center.x center.y) and ends at home.
-              // So if discharging, reverse should be FALSE!
-              // If power > 0 (charging), dot should flow FROM home TO battery.
-              // So if charging, reverse should be TRUE!
-              // Let's fix that logic:
-              // power > 0 (Charging): dot travels 1 -> 0 (Home to Battery). So reverse = true.
-              // power < 0 (Discharging): dot travels 0 -> 1 (Battery to Home). So reverse = false.
+              reverse: false
             });
-            // Re-apply the fixed logic:
             newPaths[newPaths.length - 1].reverse = power > 0;
           }
         }

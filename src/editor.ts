@@ -99,18 +99,22 @@ export class EmberWattCardEditor extends LitElement {
       <div class="card-config">
         <h3>Allgemein</h3>
         <div class="row">
-          <ha-textfield
-            label="Name (Verbrauch)"
-            .value=${this._config.name_home || ''}
-            .configValue=${'name_home'}
-            @input=${this._valueChanged}
-          ></ha-textfield>
-          <ha-textfield
-            label="Name (Netz)"
-            .value=${this._config.name_grid || ''}
-            .configValue=${'name_grid'}
-            @input=${this._valueChanged}
-          ></ha-textfield>
+          <label class="text-input-wrapper">
+            Name (Verbrauch):
+            <input type="text"
+              .value=${this._config.name_home || ''}
+              .configValue=${'name_home'}
+              @input=${this._valueChanged}
+            />
+          </label>
+          <label class="text-input-wrapper">
+            Name (Netz):
+            <input type="text"
+              .value=${this._config.name_grid || ''}
+              .configValue=${'name_grid'}
+              @input=${this._valueChanged}
+            />
+          </label>
         </div>
         <div class="row checkbox-row">
           <label>
@@ -163,11 +167,13 @@ export class EmberWattCardEditor extends LitElement {
               allow-custom-entity
               label="Solar Entität (W)"
             ></ha-entity-picker>
-            <ha-textfield
-              label="Name"
-              .value=${solar.name || ''}
-              @input=${(ev: any) => this._updateArrayValue('solar_entities', index, 'name', ev.target.value)}
-            ></ha-textfield>
+            <label class="text-input-wrapper">
+              Anzeigename:
+              <input type="text"
+                .value=${solar.name || ''}
+                @input=${(ev: any) => this._updateArrayValue('solar_entities', index, 'name', ev.target.value)}
+              />
+            </label>
             <button class="icon-button" @click=${() => this._removeArrayItem('solar_entities', index)}>
               Löschen
             </button>
@@ -192,11 +198,13 @@ export class EmberWattCardEditor extends LitElement {
               allow-custom-entity
               label="Ladezustand (%)"
             ></ha-entity-picker>
-            <ha-textfield
-              label="Name"
-              .value=${battery.name || ''}
-              @input=${(ev: any) => this._updateArrayValue('battery_entities', index, 'name', ev.target.value)}
-            ></ha-textfield>
+            <label class="text-input-wrapper">
+              Anzeigename:
+              <input type="text"
+                .value=${battery.name || ''}
+                @input=${(ev: any) => this._updateArrayValue('battery_entities', index, 'name', ev.target.value)}
+              />
+            </label>
             <label class="checkbox-row" style="margin-top: 8px;">
               <input 
                 type="checkbox" 
@@ -245,9 +253,25 @@ export class EmberWattCardEditor extends LitElement {
         display: flex;
         align-items: center;
         font-size: 0.9em;
+        cursor: pointer;
       }
       .checkbox-row input {
         margin-right: 8px;
+      }
+      .text-input-wrapper {
+        display: flex;
+        flex-direction: column;
+        font-size: 12px;
+        color: var(--secondary-text-color);
+      }
+      .text-input-wrapper input {
+        margin-top: 4px;
+        padding: 8px;
+        border: 1px solid var(--divider-color, rgba(255,255,255,0.1));
+        border-radius: 4px;
+        background: transparent;
+        color: var(--primary-text-color);
+        font-size: 14px;
       }
       .array-item {
         display: flex;
