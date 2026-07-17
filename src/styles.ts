@@ -32,8 +32,8 @@ export const styles = css`
   .card-content {
     position: relative;
     width: 100%;
-    min-height: 500px;
-    padding: 30px 0;
+    min-height: 300px;
+    padding: 16px 0;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -46,7 +46,7 @@ export const styles = css`
     grid-template-rows: 1fr auto 1fr;
     width: 100%;
     height: 100%;
-    gap: 30px;
+    gap: 16px;
     z-index: 2;
   }
 
@@ -96,7 +96,7 @@ export const styles = css`
     align-items: center;
     border: 1px solid var(--color-battery);
     border-radius: 20px;
-    padding: 24px 16px 16px 16px;
+    padding: 24px 32px 16px 16px;
     position: relative;
     background: rgba(255, 255, 255, 0.02);
     box-shadow: inset 0 0 15px rgba(46, 204, 113, 0.05);
@@ -118,7 +118,7 @@ export const styles = css`
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 16px;
+    gap: 24px;
   }
 
   /* Individual Node */
@@ -169,6 +169,8 @@ export const styles = css`
     font-weight: bold;
     display: flex;
     align-items: center;
+    justify-content: center;
+    gap: 6px;
   }
   
   .name {

@@ -194,8 +194,9 @@ export class EmberWattCard extends LitElement {
         const groupRect = this._getEdges(groupEl, containerRect);
         const groupCenter = this._getCenter(groupEl, containerRect);
         
-        // Internal busbar for the group (just below the title)
-        const groupBusY = groupRect.top + 16;
+        // Internal vertical busbar for the group (on the right side)
+        const groupBusX = groupRect.right - 10;
+        const groupTopBusY = groupRect.top + 16;
         
         let groupActive = false;
 
@@ -211,13 +212,14 @@ export class EmberWattCard extends LitElement {
             if (Math.abs(power) > 0 || alwaysShow) {
               groupActive = true;
               anyBatteryActive = true;
-              const startY = edges.top;
+              const startX = edges.right;
+              const startY = center.y;
               const endY = homeEdges.bottom;
               
-              // Hierarchical path: Node -> GroupBus -> GroupCenter -> GlobalBus -> Home
+              // Hierarchical path: Node Right -> GroupBusX -> GroupTopBusY -> GroupCenterX -> GlobalBusY -> Home
               newPaths.push({
                 id: `battery-${index}-path`,
-                d: `M ${center.x} ${startY} L ${center.x} ${groupBusY} L ${groupCenter.x} ${groupBusY} L ${groupCenter.x} ${globalBatteryBusY} L ${homeCenter.x} ${globalBatteryBusY} L ${homeCenter.x} ${endY}`,
+                d: `M ${startX} ${startY} L ${groupBusX} ${startY} L ${groupBusX} ${groupTopBusY} L ${groupCenter.x} ${groupTopBusY} L ${groupCenter.x} ${globalBatteryBusY} L ${homeCenter.x} ${globalBatteryBusY} L ${homeCenter.x} ${endY}`,
                 power: Math.abs(power),
                 color: battery.color || batteryColor,
                 reverse: false
@@ -228,7 +230,7 @@ export class EmberWattCard extends LitElement {
         });
 
         if (groupActive || alwaysShow) {
-          newJunctions.push({ id: `battery-junc-group-${gIdx}`, x: groupCenter.x, y: groupBusY, color: batteryColor });
+          newJunctions.push({ id: `battery-junc-group-top-${gIdx}`, x: groupCenter.x, y: groupTopBusY, color: batteryColor });
           newJunctions.push({ id: `battery-junc-global-${gIdx}`, x: groupCenter.x, y: globalBatteryBusY, color: batteryColor });
         }
       });
@@ -245,11 +247,14 @@ export class EmberWattCard extends LitElement {
           
           if (Math.abs(power) > 0 || alwaysShow) {
             anyBatteryActive = true;
-            const startY = edges.top;
+            const startX = edges.right;
+            const startY = center.y;
             const endY = homeEdges.bottom;
+            const globalBusX = startX + 20; // vertical bus 20px to the right of node
+
             newPaths.push({
               id: `battery-${index}-path`,
-              d: `M ${center.x} ${startY} L ${center.x} ${globalBatteryBusY} L ${homeCenter.x} ${globalBatteryBusY} L ${homeCenter.x} ${endY}`,
+              d: `M ${startX} ${startY} L ${globalBusX} ${startY} L ${globalBusX} ${globalBatteryBusY} L ${homeCenter.x} ${globalBatteryBusY} L ${homeCenter.x} ${endY}`,
               power: Math.abs(power),
               color: battery.color || batteryColor,
               reverse: false
@@ -376,8 +381,8 @@ export class EmberWattCard extends LitElement {
         <div id="battery-${index}" class="node battery ${isUngrouped ? 'ungrouped' : ''}" style="--color-battery: ${battery.color || this._config.colors?.battery || '#2ecc71'}">
           <ha-icon class="icon" icon="${icon}"></ha-icon>
           <div class="value">
-            ${isCharging ? html`<ha-icon icon="mdi:arrow-down" style="width: 14px; height: 14px; margin-right: 6px; color: var(--color-battery)"></ha-icon>` : ''}
-            ${isDischarging ? html`<ha-icon icon="mdi:arrow-up" style="width: 14px; height: 14px; margin-right: 6px; color: var(--color-solar)"></ha-icon>` : ''}
+            ${isCharging ? html`<ha-icon icon="mdi:arrow-down" style="width: 14px; height: 14px; color: var(--color-battery)"></ha-icon>` : ''}
+            ${isDischarging ? html`<ha-icon icon="mdi:arrow-up" style="width: 14px; height: 14px; color: var(--color-solar)"></ha-icon>` : ''}
             ${this._formatPower(Math.abs(power))} W
           </div>
           <div class="soc">${Math.round(this._getState(battery.entity_soc))}%</div>
