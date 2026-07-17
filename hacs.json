@@ -1,0 +1,6 @@
+{
+  "name": "EmberWATT",
+  "render": "ember-watt-card",
+  "filename": "ember-watt-card.js",
+  "iot_class": "Local Push"
+}
